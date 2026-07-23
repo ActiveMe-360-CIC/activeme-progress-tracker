@@ -848,13 +848,13 @@ export default function App() {
     setDataLoading(true);
     const { data: schoolRows } = await supabase.from("schools").select("id,name,level");
     const { data: classRows } = await supabase.from("classes").select("id,school_id,name,year_group,stage,size,curriculum_map");
-    const { data: pupilRows } = await supabase.from("pupils").select("id,class_id,init,gender,pp,send,eal");
+    const { data: pupilRows } = await supabase.from("pupils").select("id,class_id,init,name,gender,pp,send,eal");
 
     const levelBySchool = {};
     (schoolRows || []).forEach(s => { levelBySchool[s.id] = s.level; });
 
     const pupilsByClass = {};
-    (pupilRows || []).forEach(p => { (pupilsByClass[p.class_id] = pupilsByClass[p.class_id] || []).push({ init: p.init, id: p.id, g: p.gender, pp: !!p.pp, send: !!p.send, eal: !!p.eal }); });
+    (pupilRows || []).forEach(p => { (pupilsByClass[p.class_id] = pupilsByClass[p.class_id] || []).push({ init: p.init, id: p.id, name: p.name || p.init, g: p.gender, pp: !!p.pp, send: !!p.send, eal: !!p.eal }); });
 
     const classesBySchool = {};
     (classRows || []).forEach(c => {
@@ -993,7 +993,7 @@ export default function App() {
       const existingInits = new Set((existing ? existing.pupils : []).map(p => p.init));
       const newPupils = ic.pupils.filter(p => !existingInits.has(p.init));
       if (newPupils.length) {
-        const { error } = await supabase.from("pupils").insert(newPupils.map(p => ({ class_id: classId, init: p.init, gender: p.g || null, pp: !!p.pp, send: !!p.send, eal: !!p.eal })));
+        const { error } = await supabase.from("pupils").insert(newPupils.map(p => ({ class_id: classId, init: p.init, name: p.name || null, gender: p.g || null, pp: !!p.pp, send: !!p.send, eal: !!p.eal })));
         if (error) alert("Could not add pupils to '" + ic.name + "': " + error.message);
         if (existing) {
           await supabase.from("classes").update({ size: Math.max(existing.size, existing.pupils.length + newPupils.length) }).eq("id", classId);
