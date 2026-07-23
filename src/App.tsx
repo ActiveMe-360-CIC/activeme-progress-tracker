@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "./supabaseClient";
 import * as XLSX from "xlsx";
 import { ChevronLeft, Plus, Minus, Lock, ClipboardList, BarChart3, TrendingUp, Printer, ShieldAlert, ChevronRight, X, Settings, Trash2, UserPlus, Building2, Upload, Download, FileSpreadsheet, Briefcase, Image, FileText, CheckCircle2, Circle, Clock, ChevronDown, CalendarDays, Pencil } from "lucide-react";
 
@@ -770,12 +771,16 @@ function PillStack({ pillar, status, onEdit, paired }) {
 export default function App() {
   const [screen, setScreen] = useState("login");
   const [user, setUser] = useState(null);
-  const [pin, setPin] = useState("");
-  const [schools, setSchools] = useState(INIT_SCHOOLS);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [schools, setSchools] = useState([]);
   const [schoolId, setSchoolId] = useState(null);
   const [tab, setTab] = useState("plan");
   const [classId, setClassId] = useState(null);
-  const [assessments, setAssessments] = useState(SEED_ASSESSMENTS);
+  const [assessments, setAssessments] = useState([]);
+  const [dataLoading, setDataLoading] = useState(false);
   const [cfg, setCfg] = useState(null);
   const [draft, setDraft] = useState(null);
   const [report, setReport] = useState(null);
@@ -796,6 +801,102 @@ export default function App() {
   const isAdmin = user !== null && user.role === "admin";
   const F = (k, d) => (forms[k] === undefined ? (d === undefined ? "" : d) : forms[k]);
   const setF = (k, v) => setForms(f => ({ ...f, [k]: v }));
+
+  // ---------------- SUPABASE: AUTH BOOTSTRAP ----------------
+  // On load, and whenever the Supabase auth state changes (sign in / sign out / token
+  // refresh), look up the matching row in app_users to get this person's display name
+  // and role (educator/admin) - the rest of the app is written around that {name, role}
+  // shape, so nothing downstream needs to change.
+  useEffect(() => {
+    let active = true;
+    async function loadProfile(authUser) {
+      if (!authUser) {
+        if (active) { setUser(null); setAuthLoading(false); }
+        return;
+      }
+      const { data, error } = await supabase
+        .from("app_users")
+        .select("id,name,role,active")
+        .eq("auth_user_id", authUser.id)
+        .maybeSingle();
+      if (!active) return;
+      if (error || !data) {
+        setAuthError(error ? error.message : "No account found for this login. Ask an admin to set one up for you.");
+        setUser(null);
+      } else if (!data.active) {
+        setAuthError("This account has been deactivated. Contact an admin.");
+        setUser(null);
+      } else {
+        setAuthError("");
+        setUser({ name: data.name, role: data.role, appUserId: data.id });
+        setScreen(s => (s === "login" ? "schools" : s));
+      }
+      setAuthLoading(false);
+    }
+    supabase.auth.getSession().then(({ data }) => loadProfile(data.session ? data.session.user : null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      loadProfile(session ? session.user : null);
+    });
+    return () => { active = false; sub.subscription.unsubscribe(); };
+  }, []);
+
+  // ---------------- SUPABASE: DATA LOADING ----------------
+  // Pulls schools/classes/pupils and assessments from Supabase and reshapes them into
+  // the same nested objects the rest of the app already expects, so the Report/Doc/
+  // Entry screens etc. don't need to change at all.
+  async function loadAllData() {
+    setDataLoading(true);
+    const { data: schoolRows } = await supabase.from("schools").select("id,name,level");
+    const { data: classRows } = await supabase.from("classes").select("id,school_id,name,year_group,stage,size,curriculum_map");
+    const { data: pupilRows } = await supabase.from("pupils").select("id,class_id,init");
+
+    const levelBySchool = {};
+    (schoolRows || []).forEach(s => { levelBySchool[s.id] = s.level; });
+
+    const pupilsByClass = {};
+    (pupilRows || []).forEach(p => { (pupilsByClass[p.class_id] = pupilsByClass[p.class_id] || []).push({ init: p.init, id: p.id }); });
+
+    const classesBySchool = {};
+    (classRows || []).forEach(c => {
+      (classesBySchool[c.school_id] = classesBySchool[c.school_id] || []).push({
+        id: c.id,
+        name: c.name,
+        year: c.year_group,
+        stage: c.stage,
+        size: c.size,
+        pupils: pupilsByClass[c.id] || [],
+        map: c.curriculum_map && Object.keys(c.curriculum_map).length ? c.curriculum_map : buildMap(),
+      });
+    });
+
+    setSchools((schoolRows || []).map(s => ({
+      id: s.id, name: s.name, level: s.level, classes: classesBySchool[s.id] || [],
+    })));
+
+    const { data: assessRows } = await supabase
+      .from("assessments")
+      .select("id,school_id,class_id,pillar,stage,window_type,block,term,assess_date,educator_id,data,app_users(name)");
+
+    setAssessments((assessRows || []).map(a => ({
+      id: a.id,
+      schoolId: a.school_id,
+      classId: a.class_id,
+      pillar: a.pillar,
+      stage: a.stage,
+      window: a.window_type,
+      block: a.block,
+      term: a.term,
+      date: a.assess_date,
+      educator: a.app_users ? a.app_users.name : "",
+      level: levelBySchool[a.school_id],
+      data: a.data,
+    })));
+    setDataLoading(false);
+  }
+
+  useEffect(() => {
+    if (user) loadAllData();
+  }, [user]);
 
   const COLOURS = ["#4A1671", "#189E8A", "#E06B22", "#E3225C", "#2554C7"];
   function addSchool() {
@@ -876,24 +977,30 @@ export default function App() {
       setImportPreview({ sid, list: [], errors: ["Could not read the file. Please use the .csv template or an .xlsx file with the same headings."] });
     }
   }
-  function confirmImport() {
+  async function confirmImport() {
     const ip = importPreview;
-    setSchools(ss => ss.map(s => {
-      if (s.id !== ip.sid) return s;
-      let newClasses = [...s.classes];
-      ip.list.forEach(ic => {
-        const exIdx = newClasses.findIndex(c => c.name.toLowerCase() === ic.name.toLowerCase());
-        if (exIdx >= 0) {
-          const ex = newClasses[exIdx];
-          const merged = [...ex.pupils];
-          ic.pupils.forEach(p => { if (!merged.some(q => q.init === p.init)) merged.push(p); });
-          newClasses[exIdx] = { ...ex, pupils: merged, size: Math.max(ex.size, merged.length) };
-        } else {
-          newClasses.push({ id: slug(ic.name), name: ic.name, year: ic.year, stage: ic.stage, size: ic.pupils.length, pupils: ic.pupils, map: buildMap() });
+    const sch = schools.find(s => s.id === ip.sid);
+    for (const ic of ip.list) {
+      const existing = sch.classes.find(c => c.name.toLowerCase() === ic.name.toLowerCase());
+      const classId = existing ? existing.id : slug(ic.name);
+      if (!existing) {
+        const { error } = await supabase.from("classes").insert({
+          id: classId, school_id: ip.sid, name: ic.name, year_group: ic.year, stage: ic.stage,
+          size: ic.pupils.length, curriculum_map: buildMap(),
+        });
+        if (error) { alert("Could not create class '" + ic.name + "': " + error.message); continue; }
+      }
+      const existingInits = new Set((existing ? existing.pupils : []).map(p => p.init));
+      const newPupils = ic.pupils.filter(p => !existingInits.has(p.init));
+      if (newPupils.length) {
+        const { error } = await supabase.from("pupils").insert(newPupils.map(p => ({ class_id: classId, init: p.init })));
+        if (error) alert("Could not add pupils to '" + ic.name + "': " + error.message);
+        if (existing) {
+          await supabase.from("classes").update({ size: Math.max(existing.size, existing.pupils.length + newPupils.length) }).eq("id", classId);
         }
-      });
-      return { ...s, classes: newClasses };
-    }));
+      }
+    }
+    await loadAllData();
     setImportPreview(null);
   }
 
@@ -902,8 +1009,14 @@ export default function App() {
     if (level === 2) return { statements: [0, 1, 2, 3].map(() => ({ many: null, initials: { E: [], D: [], Es: [] } })), pre: [], post: [] };
     return { pupils: Object.fromEntries(cls.pupils.map(p => [p.init, {}])), flags: {} };
   }
-  function saveDraft() {
-    setAssessments(a => [...a, { id: Date.now(), schoolId, classId, pillar: cfg.pillar, stage: cfg.stage, window: cfg.window, block: cfg.block, term: cfg.term, date: cfg.date, educator: user.name, level: school.level, data: draft }]);
+  async function saveDraft() {
+    const { data: inserted, error } = await supabase.from("assessments").insert({
+      school_id: schoolId, class_id: classId, pillar: cfg.pillar, stage: cfg.stage,
+      window_type: cfg.window, block: cfg.block, term: cfg.term, assess_date: cfg.date,
+      educator_id: user.appUserId, data: draft,
+    }).select().single();
+    if (error) { alert("Could not save this assessment: " + error.message); return; }
+    setAssessments(a => [...a, { id: inserted.id, schoolId, classId, pillar: cfg.pillar, stage: cfg.stage, window: cfg.window, block: cfg.block, term: cfg.term, date: cfg.date, educator: user.name, level: school.level, data: draft }]);
     setSaved(true);
     setTimeout(() => { setSaved(false); setTab("progress"); setScreen("school"); }, 900);
   }
@@ -919,28 +1032,49 @@ export default function App() {
           <p className="text-sm mt-1" style={{ color: BC.lilac }}>The ActiveMe Way - Progress Tracker</p>
         </div>
         <div className="bg-white rounded-2xl p-5 shadow-xl">
-          <div className="flex items-start gap-2 rounded-lg p-2.5 mb-4 border" style={tintBox("#FFAC38")}>
-            <ShieldAlert size={18} className="shrink-0 mt-0.5" style={{ color: "#E06B22" }} />
-            <p className="text-xs" style={{ color: BC.ink }}><b>Prototype only.</b> Demo login, fictional schools and pupils. Not for real pupil data — the production build will use secure authentication.</p>
-          </div>
-          <label className="text-xs font-bold uppercase" style={{ color: BC.purple }}>User</label>
-          <div className="grid grid-cols-2 gap-2 mt-1 mb-3">
-            {USERS.map(u => {
-              const sel = user !== null && user.name === u.name;
-              return (
-                <button key={u.name} onClick={() => setUser(u)} className="py-2 rounded-lg border-2 font-semibold text-sm" style={sel ? { borderColor: BC.mid, backgroundColor: BC.lilac + "33", color: BC.ink } : { borderColor: "#E5E0EB", color: "#64748b" }}>
-                  {u.name}
-                  <span className="block text-[9px] font-bold uppercase" style={{ color: u.role === "admin" ? "#E3225C" : "#94a3b8" }}>{u.role}</span>
-                </button>
-              );
-            })}
-          </div>
-          <label className="text-xs font-bold uppercase" style={{ color: BC.purple }}>PIN</label>
-          <div className="relative mt-1 mb-4">
-            <Lock size={16} className="absolute left-3 top-3 text-slate-400" />
-            <input type="password" value={pin} onChange={e => setPin(e.target.value)} placeholder="Any 4 digits (demo)" className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 focus:outline-none" />
-          </div>
-          <button disabled={!user || pin.length < 4} onClick={() => setScreen("schools")} className="fd w-full py-3 rounded-xl font-bold disabled:opacity-30 hover:opacity-90" style={pill(BC.lime, BC.ink)}>Sign in</button>
+          {authLoading ? (
+            <p className="text-sm text-center py-8" style={{ color: BC.purple }}>Checking your session…</p>
+          ) : (
+            <>
+              {authError ? (
+                <div className="flex items-start gap-2 rounded-lg p-2.5 mb-4 border" style={tintBox("#E3225C")}>
+                  <ShieldAlert size={18} className="shrink-0 mt-0.5" style={{ color: "#E3225C" }} />
+                  <p className="text-xs" style={{ color: BC.ink }}>{authError}</p>
+                </div>
+              ) : null}
+              <button
+                onClick={() => { setAuthError(""); supabase.auth.signInWithOAuth({ provider: "azure", options: { scopes: "email" } }); }}
+                className="fd w-full py-3 rounded-xl font-bold mb-4 hover:opacity-90"
+                style={pill(BC.ink, "#fff")}
+              >
+                Sign in with Microsoft
+              </button>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="flex-1 h-px" style={{ backgroundColor: "#E5E0EB" }} />
+                <span className="text-[10px] uppercase font-bold text-slate-400">or</span>
+                <div className="flex-1 h-px" style={{ backgroundColor: "#E5E0EB" }} />
+              </div>
+              <label className="text-xs font-bold uppercase" style={{ color: BC.purple }}>Email</label>
+              <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} placeholder="you@activeme360.com" className="w-full mt-1 mb-3 px-3 py-2.5 rounded-lg border border-slate-300 focus:outline-none" />
+              <label className="text-xs font-bold uppercase" style={{ color: BC.purple }}>Password</label>
+              <div className="relative mt-1 mb-4">
+                <Lock size={16} className="absolute left-3 top-3 text-slate-400" />
+                <input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} placeholder="Password" className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 focus:outline-none" onKeyDown={e => { if (e.key === "Enter" && loginEmail && loginPassword) e.currentTarget.form?.requestSubmit?.(); }} />
+              </div>
+              <button
+                disabled={!loginEmail || !loginPassword}
+                onClick={async () => {
+                  setAuthError("");
+                  const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPassword });
+                  if (error) setAuthError(error.message);
+                }}
+                className="fd w-full py-3 rounded-xl font-bold disabled:opacity-30 hover:opacity-90"
+                style={pill(BC.lime, BC.ink)}
+              >
+                Sign in
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
