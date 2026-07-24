@@ -1118,16 +1118,17 @@ async function addPupil(sid, cid) {
     </div>
   );
 
-  const Header = ({ title, back, sub }) => (
-    <div className="sticky top-0 z-10 text-white px-4 py-3 flex items-center gap-3 shadow-md" style={{ backgroundColor: BC.ink }}>
-      {back ? <button onClick={back} className="p-1.5 rounded-lg hover:bg-white/10"><ChevronLeft size={20} /></button> : null}
-      <div className="flex-1 min-w-0">
-        <h1 className="fd font-bold truncate text-sm">{title}</h1>
-        {sub ? <p className="text-xs truncate" style={{ color: BC.lilac }}>{sub}</p> : null}
-      </div>
-      <div className="text-xs px-2.5 py-1 rounded-full font-semibold" style={isAdmin ? pill(BC.lime, BC.ink) : pill(BC.purple, "#fff")}>{user.name}{isAdmin ? " · Admin" : ""}</div>
+ const Header = ({ title, back, sub, logo }) => (
+  <div className="sticky top-0 z-10 text-white px-4 py-3 flex items-center gap-3 shadow-md" style={{ backgroundColor: BC.ink }}>
+    {back ? <button onClick={back} className="p-1.5 rounded-lg hover:bg-white/10"><ChevronLeft size={20} /></button> : null}
+    {logo ? <img src={logo} alt="" className="w-8 h-8 rounded-lg object-contain bg-white shrink-0" /> : null}
+    <div className="flex-1 min-w-0">
+      <h1 className="fd font-bold truncate text-sm">{title}</h1>
+      {sub ? <p className="text-xs truncate" style={{ color: BC.lilac }}>{sub}</p> : null}
     </div>
-  );
+    <div className="text-xs px-2.5 py-1 rounded-full font-semibold" style={isAdmin ? pill(BC.lime, BC.ink) : pill(BC.purple, "#fff")}>{user.name}{isAdmin ? " · Admin" : ""}</div>
+  </div>
+);
 
   // ---------------- SCHOOLS LIST ----------------
  // ---------------- SCHOOLS LIST ----------------
