@@ -848,7 +848,7 @@ const [myLeadIds, setMyLeadIds] = useState(new Set());
   // Entry screens etc. don't need to change at all.
   async function loadAllData() {
     setDataLoading(true);
-    const { data: schoolRows } = await supabase.from("schools").select("id,name,level");
+   const { data: schoolRows } = await supabase.from("schools").select("id,name,level,colour,logo_url");
     const { data: classRows } = await supabase.from("classes").select("id,school_id,name,year_group,stage,size,curriculum_map");
     const { data: pupilRows } = await supabase.from("pupils").select("id,class_id,init,name,gender,pp,send,eal");
 
@@ -872,8 +872,8 @@ const [myLeadIds, setMyLeadIds] = useState(new Set());
     });
 
     setSchools((schoolRows || []).map(s => ({
-      id: s.id, name: s.name, level: s.level, classes: classesBySchool[s.id] || [],
-    })));
+  id: s.id, name: s.name, level: s.level, colour: s.colour, logo: s.logo_url, classes: classesBySchool[s.id] || [],
+})));
 
     const { data: assessRows } = await supabase
       .from("assessments")
@@ -954,9 +954,16 @@ async function addPupil(sid, cid) {
   function removePupil(sid, cid, init) {
     setSchools(ss => ss.map(s => (s.id !== sid ? s : { ...s, classes: s.classes.map(c => (c.id !== cid ? c : { ...c, pupils: c.pupils.filter(p => p.init !== init) })) })));
   }
-  function setLogo(sid, dataUrl) {
-    setSchools(ss => ss.map(s => (s.id !== sid ? s : { ...s, logo: dataUrl })));
-  }
+  async function setLogo(sid, file) {
+  const ext = file.name.split(".").pop();
+  const path = sid + "/" + Date.now() + "." + ext;
+  const { error: upErr } = await supabase.storage.from("school-logos").upload(path, file, { upsert: true, cacheControl: "3600" });
+  if (upErr) { alert("Could not upload logo: " + upErr.message); return; }
+  const { data: urlData } = supabase.storage.from("school-logos").getPublicUrl(path);
+  const { error } = await supabase.from("schools").update({ logo_url: urlData.publicUrl }).eq("id", sid);
+  if (error) { alert("Could not save logo: " + error.message); return; }
+  await loadAllData();
+}
 
   function downloadTemplate() {
     const blob = new Blob([TEMPLATE_CSV], { type: "text/csv" });
@@ -1392,14 +1399,12 @@ async function addPupil(sid, cid) {
               {aSchool.logo ? <img src={aSchool.logo} alt="logo" className="h-12 w-12 object-contain rounded-lg border border-slate-200 bg-white" /> : <div className="h-12 w-12 rounded-lg text-white flex items-center justify-center font-black" style={{ backgroundColor: aSchool.colour }}>{aSchool.name[0]}</div>}
               <label className="flex-1 py-2.5 rounded-xl border-2 font-bold text-xs flex items-center justify-center gap-1.5 hover:opacity-80 cursor-pointer" style={{ borderColor: BC.mid, color: BC.purple }}>
                 <Upload size={14} />{aSchool.logo ? "Replace logo" : "Upload logo"}
-                <input type="file" accept="image/*" className="hidden" onChange={e => {
-                  const f = e.target.files && e.target.files[0];
-                  e.target.value = "";
-                  if (!f) return;
-                  const rd = new FileReader();
-                  rd.onload = () => setLogo(aSchool.id, rd.result);
-                  rd.readAsDataURL(f);
-                }} />
+               <input type="file" accept="image/*" className="hidden" onChange={e => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  setLogo(aSchool.id, f);
+}} />
               </label>
             </div>
           </div>
