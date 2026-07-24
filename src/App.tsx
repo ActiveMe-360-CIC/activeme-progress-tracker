@@ -1118,17 +1118,17 @@ async function addPupil(sid, cid) {
     </div>
   );
 
- const Header = ({ title, back, sub, logo }) => (
-  <div className="sticky top-0 z-10 text-white px-4 py-3 flex items-center gap-3 shadow-md" style={{ backgroundColor: BC.ink }}>
-    {back ? <button onClick={back} className="p-1.5 rounded-lg hover:bg-white/10"><ChevronLeft size={20} /></button> : null}
-    {logo ? <img src={logo} alt="" className="w-8 h-8 rounded-lg object-contain bg-white shrink-0" /> : null}
-    <div className="flex-1 min-w-0">
-      <h1 className="fd font-bold truncate text-sm">{title}</h1>
-      {sub ? <p className="text-xs truncate" style={{ color: BC.lilac }}>{sub}</p> : null}
+  const Header = ({ title, back, sub, logo }) => (
+    <div className="sticky top-0 z-10 text-white px-4 py-3 flex items-center gap-3 shadow-md" style={{ backgroundColor: BC.ink }}>
+      {back ? <button onClick={back} className="p-1.5 rounded-lg hover:bg-white/10"><ChevronLeft size={20} /></button> : null}
+      {logo ? <img src={logo} alt="" className="w-8 h-8 rounded-lg object-contain bg-white shrink-0" /> : null}
+      <div className="flex-1 min-w-0">
+        <h1 className="fd font-bold truncate text-sm">{title}</h1>
+        {sub ? <p className="text-xs truncate" style={{ color: BC.lilac }}>{sub}</p> : null}
+      </div>
+      <div className="text-xs px-2.5 py-1 rounded-full font-semibold" style={isAdmin ? pill(BC.lime, BC.ink) : pill(BC.purple, "#fff")}>{user.name}{isAdmin ? " · Admin" : ""}</div>
     </div>
-    <div className="text-xs px-2.5 py-1 rounded-full font-semibold" style={isAdmin ? pill(BC.lime, BC.ink) : pill(BC.purple, "#fff")}>{user.name}{isAdmin ? " · Admin" : ""}</div>
-  </div>
-);
+  );
 
   // ---------------- SCHOOLS LIST ----------------
  // ---------------- SCHOOLS LIST ----------------
@@ -1137,7 +1137,7 @@ async function addPupil(sid, cid) {
     const otherSchools = schools.filter(s => !mySchoolIds.has(s.id));
     const SchoolCard = (s, lead) => (
       <button key={s.id} onClick={() => { setSchoolId(s.id); setClassId(null); setTab("plan"); setScopePick(null); setScreen("school"); }} className="w-full bg-white rounded-2xl p-4 shadow-sm hover:shadow-md text-left flex items-center gap-4 transition-shadow">
-        <div className="w-12 h-12 rounded-xl text-white flex items-center justify-center font-black text-lg shrink-0" style={{ backgroundColor: s.colour || BC.ink }}>{s.name[0]}</div>
+        {s.logo ? <img src={s.logo} alt="" className="w-12 h-12 rounded-xl object-contain bg-white border border-slate-100 shrink-0" /> : <div className="w-12 h-12 rounded-xl text-white flex items-center justify-center font-black text-lg shrink-0" style={{ backgroundColor: s.colour || BC.ink }}>{s.name[0]}</div>}
         <div className="flex-1">
           <div className="font-bold flex items-center gap-2" style={{ color: BC.ink }}>{s.name}{lead ? <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded" style={pill(BC.lime, BC.ink)}>Lead</span> : null}</div>
           <div className="text-xs text-slate-500">{s.classes.length} classes</div>
@@ -1461,7 +1461,7 @@ async function addPupil(sid, cid) {
           </div>
           {schools.map(s => (
             <button key={s.id} onClick={() => setAdminSchoolId(s.id)} className="w-full bg-white rounded-2xl p-4 shadow-sm hover:shadow-md text-left flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl text-white flex items-center justify-center font-black text-lg shrink-0" style={{ backgroundColor: s.colour }}>{s.name[0]}</div>
+              {s.logo ? <img src={s.logo} alt="" className="w-12 h-12 rounded-xl object-contain bg-white border border-slate-100 shrink-0" /> : <div className="w-12 h-12 rounded-xl text-white flex items-center justify-center font-black text-lg shrink-0" style={{ backgroundColor: s.colour || BC.ink }}>{s.name[0]}</div>}
               <div className="flex-1">
                 <div className="font-bold" style={{ color: BC.ink }}>{s.name}</div>
                 <div className="text-xs text-slate-500">{s.classes.length} classes · {s.classes.reduce((n, c) => n + c.pupils.length, 0)} pupils on register</div>
