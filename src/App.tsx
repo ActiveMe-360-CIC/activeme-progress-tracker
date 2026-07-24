@@ -1295,7 +1295,7 @@ async function addPupil(sid, cid) {
     if (aSchool && aCls) return (
       <div className="fb min-h-screen" style={{ backgroundColor: BC.bg }}>
         {FONTS}
-        <Header title={aCls.name} sub={aSchool.name + " · Admin"} back={() => setAdminClassId(null)} />
+        <Header title={aCls.name} sub={aSchool.name + " · Admin"} back={() => setAdminClassId(null)} logo={aSchool.logo} />
         <div className="max-w-lg mx-auto p-4 space-y-3">
 
           {/* Curriculum map editor */}
@@ -1354,7 +1354,7 @@ async function addPupil(sid, cid) {
     if (aSchool) return (
       <div className="fb min-h-screen" style={{ backgroundColor: BC.bg }}>
         {FONTS}
-        <Header title={aSchool.name} sub="Admin · Manage classes" back={() => { setAdminSchoolId(null); setImportPreview(null); }} />
+        <Header title={aSchool.name} sub="Admin · Manage classes" back={() => { setAdminSchoolId(null); setImportPreview(null); }} logo={aSchool.logo} />
         <div className="max-w-lg mx-auto p-4 space-y-3">
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <p className="fd font-bold text-sm mb-1 flex items-center gap-2" style={{ color: BC.ink }}><FileSpreadsheet size={16} />Import classes & pupils from Excel</p>
@@ -1484,7 +1484,7 @@ async function addPupil(sid, cid) {
     return (
       <div className="fb min-h-screen" style={{ backgroundColor: BC.bg }}>
         {FONTS}
-        <Header title={school.name} sub={"Level " + school.level + " · " + termLabel(CURRENT_TERM)} back={() => setScreen("schools")} />
+        <Header title={school.name} sub={"Level " + school.level + " · " + termLabel(CURRENT_TERM)} back={() => setScreen("schools")} logo={school.logo} />
         <div className="max-w-lg mx-auto">
           <div className="flex p-2 gap-2">
             <button onClick={() => setTab("plan")} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold text-xs" style={tab === "plan" ? pill(BC.ink, "#fff") : pill("#fff", "#94a3b8")}><CalendarDays size={15} />Plan</button>
@@ -1636,7 +1636,7 @@ async function addPupil(sid, cid) {
     return (
       <div className="fb min-h-screen pb-6" style={{ backgroundColor: BC.bg }}>
         {FONTS}
-        <Header title={cls.name + " · " + cls.year} sub={school.name + " · " + termLabel(cfg.term)} back={() => setScreen("school")} />
+        <Header title={cls.name + " · " + cls.year} sub={school.name + " · " + termLabel(cfg.term)} back={() => setScreen("school")} logo={school.logo} />
         <div className="max-w-lg mx-auto p-4 space-y-4">
           <div className="rounded-xl p-3 flex items-center gap-2" style={tintBox(BC.mid)}>
             <CalendarDays size={16} style={{ color: BC.purple }} />
@@ -1716,7 +1716,7 @@ async function addPupil(sid, cid) {
     return (
       <div className="fb min-h-screen pb-28" style={{ backgroundColor: BC.bg }}>
         {FONTS}
-        <Header title={cfg.pillar + " · Stage " + cfg.stage} sub={cls.name + " · " + WLABEL[cfg.window] + " · T" + cfg.term + " · " + fmtDate(cfg.date)} back={() => setScreen("setup")} />
+        <Header title={cfg.pillar + " · Stage " + cfg.stage} sub={cls.name + " · " + WLABEL[cfg.window] + " · T" + cfg.term + " · " + fmtDate(cfg.date)} back={() => setScreen("setup")} logo={school.logo} />
         <div className="max-w-lg mx-auto p-3 space-y-3">
           <div className="rounded-xl p-3 text-white" style={{ backgroundColor: FRAMEWORK[cfg.pillar].hex }}>
             <div className="text-xs font-semibold opacity-80 uppercase">Learning focus</div>
@@ -2151,7 +2151,7 @@ async function addPupil(sid, cid) {
     return (
       <div className="fb min-h-screen pb-10" style={{ backgroundColor: BC.bg }}>
         {FONTS}
-        <Header title={baselineOnly ? "Baseline Pulse Check" : "Impact Report"} sub={rCls.name + " · " + rCls.year + " · " + school.name} back={() => { setScreen("school"); setTab(baselineOnly ? "progress" : "reports"); }} />
+        <Header title={baselineOnly ? "Baseline Pulse Check" : "Impact Report"} sub={rCls.name + " · " + rCls.year + " · " + school.name} back={() => { setScreen("school"); setTab(baselineOnly ? "progress" : "reports"); }} logo={school.logo} />
         <div className="max-w-lg mx-auto p-3 space-y-3">
           {baselineOnly ? (
             <div className="rounded-2xl p-3 border" style={tintBox("#FFAC38")}>
