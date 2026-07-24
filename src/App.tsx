@@ -899,28 +899,49 @@ export default function App() {
   }, [user]);
 
   const COLOURS = ["#4A1671", "#189E8A", "#E06B22", "#E3225C", "#2554C7"];
-  function addSchool() {
-    const name = String(F("sName")).trim(); if (!name) return;
-    setSchools(s => [...s, { id: slug(name), name, level: Number(F("sLevel", 1)), colour: COLOURS[s.length % COLOURS.length], logo: null, classes: [] }]);
-    setF("sName", ""); setF("sLevel", 1);
-  }
-  function addClass(sid) {
-    const name = String(F("cName")).trim(); if (!name) return;
-    const nc = { id: slug(name), name, year: F("cYear", "Year 1"), stage: Number(F("cStage", 1)), size: Number(F("cSize", 30)) || 30, pupils: [], map: buildMap() };
-    setSchools(ss => ss.map(s => (s.id !== sid ? s : { ...s, classes: [...s.classes, nc] })));
-    setF("cName", "");
-  }
-  function setPaired(sid, cid, term, pillar) {
-    setSchools(ss => ss.map(s => (s.id !== sid ? s : { ...s, classes: s.classes.map(c => (c.id !== cid ? c : { ...c, map: c.map.map(m => (m.term === term ? { ...m, paired: pillar } : m)) })) })));
-  }
-  function addPupil(sid, cid) {
-    const name = String(F("pName")).trim(); if (!name) return;
-    const typed = String(F("pInit")).trim().toUpperCase();
-    const auto = name.split(" ").map(w => w[0]).join("").slice(0, 3).toUpperCase();
-    const np = mk(name, typed || auto, { g: F("pG", null), pp: F("pPP", false), send: F("pSEND", false), eal: F("pEAL", false) });
-    setSchools(ss => ss.map(s => (s.id !== sid ? s : { ...s, classes: s.classes.map(c => (c.id !== cid ? c : { ...c, pupils: [...c.pupils, np] })) })));
-    setF("pName", ""); setF("pInit", ""); setF("pG", null); setF("pPP", false); setF("pSEND", false); setF("pEAL", false);
-  }
+  async function addSchool() {
+  const name = String(F("sName")).trim(); if (!name) return;
+  const id = slug(name);
+  const { error } = await supabase.from("schools").insert({ id, name, level: Number(F("sLevel", 1)) });
+  if (error) { alert("Could not create school: " + error.message); return; }
+  await loadAllData();
+  setF("sName", ""); setF("sLevel", 1);
+}
+
+async function addClass(sid) {
+  const name = String(F("cName")).trim(); if (!name) return;
+  const id = slug(name);
+  const { error } = await supabase.from("classes").insert({
+    id, school_id: sid, name,
+    year_group: F("cYear", "Year 1"), stage: Number(F("cStage", 1)),
+    size: Number(F("cSize", 30)) || 30, curriculum_map: buildMap(),
+  });
+  if (error) { alert("Could not create class: " + error.message); return; }
+  await loadAllData();
+  setF("cName", "");
+}
+async function setPaired(sid, cid, term, pillar) {
+  const sch = schools.find(s => s.id === sid);
+  const cls = sch.classes.find(c => c.id === cid);
+  const newMap = cls.map.map(m => (m.term === term ? { ...m, paired: pillar } : m));
+  const { error } = await supabase.from("classes").update({ curriculum_map: newMap }).eq("id", cid);
+  if (error) { alert("Could not update curriculum map: " + error.message); return; }
+  await loadAllData();
+}
+
+async function addPupil(sid, cid) {
+  const name = String(F("pName")).trim(); if (!name) return;
+  const typed = String(F("pInit")).trim().toUpperCase();
+  const auto = name.split(" ").map(w => w[0]).join("").slice(0, 3).toUpperCase();
+  const init = typed || auto;
+  const { error } = await supabase.from("pupils").insert({
+    class_id: cid, init, name,
+    gender: F("pG", null), pp: !!F("pPP", false), send: !!F("pSEND", false), eal: !!F("pEAL", false),
+  });
+  if (error) { alert("Could not add pupil: " + error.message); return; }
+  await loadAllData();
+  setF("pName", ""); setF("pInit", ""); setF("pG", null); setF("pPP", false); setF("pSEND", false); setF("pEAL", false);
+}
   function removePupil(sid, cid, init) {
     setSchools(ss => ss.map(s => (s.id !== sid ? s : { ...s, classes: s.classes.map(c => (c.id !== cid ? c : { ...c, pupils: c.pupils.filter(p => p.init !== init) })) })));
   }
