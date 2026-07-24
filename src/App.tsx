@@ -911,7 +911,8 @@ const [myLeadIds, setMyLeadIds] = useState(new Set());
   async function addSchool() {
   const name = String(F("sName")).trim(); if (!name) return;
   const id = slug(name);
-  const { error } = await supabase.from("schools").insert({ id, name, level: Number(F("sLevel", 1)) });
+  const colour = COLOURS[schools.length % COLOURS.length];
+  const { error } = await supabase.from("schools").insert({ id, name, level: Number(F("sLevel", 1)), colour });
   if (error) { alert("Could not create school: " + error.message); return; }
   await loadAllData();
   setF("sName", ""); setF("sLevel", 1);
