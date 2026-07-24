@@ -795,6 +795,8 @@ export default function App() {
   const [scopePick, setScopePick] = useState(null);
   const [showStatements, setShowStatements] = useState(true);
   const [editMap, setEditMap] = useState(null); // {term} for editing paired pillar
+  const [mySchoolIds, setMySchoolIds] = useState(new Set());
+const [myLeadIds, setMyLeadIds] = useState(new Set());
 
   const school = schools.find(s => s.id === schoolId);
   const cls = school ? school.classes.find(c => c.id === classId) : null;
@@ -891,6 +893,13 @@ export default function App() {
       level: levelBySchool[a.school_id],
       data: a.data,
     })));
+    if (user && user.appUserId) {
+  const { data: mySchoolRows } = await supabase.from("user_schools").select("school_id,is_lead").eq("app_user_id", user.appUserId);
+  setMySchoolIds(new Set((mySchoolRows || []).map(r => r.school_id)));
+  setMyLeadIds(new Set((mySchoolRows || []).filter(r => r.is_lead).map(r => r.school_id)));
+} else {
+  setMySchoolIds(new Set()); setMyLeadIds(new Set());
+}
     setDataLoading(false);
   }
 
@@ -1113,40 +1122,58 @@ async function addPupil(sid, cid) {
   );
 
   // ---------------- SCHOOLS LIST ----------------
-  if (screen === "schools") return (
-    <div className="fb min-h-screen" style={{ backgroundColor: BC.bg }}>
-      {FONTS}
-      <Header title="My Schools" sub="Select a school to plan, log or review" back={() => setScreen("login")} />
-      <div className="p-4 max-w-lg mx-auto space-y-3">
-        {isAdmin ? (
-          <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => { setAdminSchoolId(null); setAdminClassId(null); setScreen("admin"); }} className="text-white rounded-2xl p-4 shadow-sm hover:opacity-95 text-left" style={{ backgroundColor: BC.ink }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-2" style={{ backgroundColor: BC.mid }}><Settings size={20} /></div>
-              <div className="fd font-bold text-sm">Admin Console</div>
-              <div className="text-[11px]" style={{ color: BC.lilac }}>Schools, classes, curriculum maps, imports</div>
-            </button>
-            <button onClick={() => setScreen("company")} className="text-white rounded-2xl p-4 shadow-sm hover:opacity-95 text-left" style={{ backgroundColor: BC.ink }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-2" style={pill(BC.lime, BC.ink)}><Briefcase size={20} /></div>
-              <div className="fd font-bold text-sm">Company Dashboard</div>
-              <div className="text-[11px]" style={{ color: BC.lilac }}>Whole-company impact & staff</div>
-            </button>
-          </div>
-        ) : null}
-        {schools.map(s => (
-          <button key={s.id} onClick={() => { setSchoolId(s.id); setClassId(null); setTab("plan"); setScopePick(null); setScreen("school"); }} className="w-full bg-white rounded-2xl p-4 shadow-sm hover:shadow-md text-left flex items-center gap-4 transition-shadow">
-            <div className="w-12 h-12 rounded-xl text-white flex items-center justify-center font-black text-lg shrink-0" style={{ backgroundColor: s.colour }}>{s.name[0]}</div>
-            <div className="flex-1">
-              <div className="font-bold" style={{ color: BC.ink }}>{s.name}</div>
-              <div className="text-xs text-slate-500">{s.classes.length} classes</div>
-              <div className="mt-1"><LevelBadge level={s.level} /></div>
+ // ---------------- SCHOOLS LIST ----------------
+  if (screen === "schools") {
+    const mySchools = schools.filter(s => mySchoolIds.has(s.id));
+    const otherSchools = schools.filter(s => !mySchoolIds.has(s.id));
+    const SchoolCard = (s, lead) => (
+      <button key={s.id} onClick={() => { setSchoolId(s.id); setClassId(null); setTab("plan"); setScopePick(null); setScreen("school"); }} className="w-full bg-white rounded-2xl p-4 shadow-sm hover:shadow-md text-left flex items-center gap-4 transition-shadow">
+        <div className="w-12 h-12 rounded-xl text-white flex items-center justify-center font-black text-lg shrink-0" style={{ backgroundColor: s.colour || BC.ink }}>{s.name[0]}</div>
+        <div className="flex-1">
+          <div className="font-bold flex items-center gap-2" style={{ color: BC.ink }}>{s.name}{lead ? <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded" style={pill(BC.lime, BC.ink)}>Lead</span> : null}</div>
+          <div className="text-xs text-slate-500">{s.classes.length} classes</div>
+          <div className="mt-1"><LevelBadge level={s.level} /></div>
+        </div>
+        <ChevronRight className="text-slate-300" />
+      </button>
+    );
+    return (
+      <div className="fb min-h-screen" style={{ backgroundColor: BC.bg }}>
+        {FONTS}
+        <Header title="Schools" sub="Select a school to plan, log or review" back={() => setScreen("login")} />
+        <div className="p-4 max-w-lg mx-auto space-y-3">
+          {isAdmin ? (
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={() => { setAdminSchoolId(null); setAdminClassId(null); setScreen("admin"); }} className="text-white rounded-2xl p-4 shadow-sm hover:opacity-95 text-left" style={{ backgroundColor: BC.ink }}>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-2" style={{ backgroundColor: BC.mid }}><Settings size={20} /></div>
+                <div className="fd font-bold text-sm">Admin Console</div>
+                <div className="text-[11px]" style={{ color: BC.lilac }}>Schools, classes, curriculum maps, imports</div>
+              </button>
+              <button onClick={() => setScreen("company")} className="text-white rounded-2xl p-4 shadow-sm hover:opacity-95 text-left" style={{ backgroundColor: BC.ink }}>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-2" style={pill(BC.lime, BC.ink)}><Briefcase size={20} /></div>
+                <div className="fd font-bold text-sm">Company Dashboard</div>
+                <div className="text-[11px]" style={{ color: BC.lilac }}>Whole-company impact & staff</div>
+              </button>
             </div>
-            <ChevronRight className="text-slate-300" />
-          </button>
-        ))}
+          ) : null}
+          {mySchools.length > 0 ? (
+            <div>
+              <p className="text-xs font-bold uppercase mb-2 px-1" style={{ color: BC.purple }}>My Schools</p>
+              <div className="space-y-3">{mySchools.map(s => SchoolCard(s, myLeadIds.has(s.id)))}</div>
+            </div>
+          ) : null}
+          {otherSchools.length > 0 ? (
+            <div className={mySchools.length > 0 ? "mt-4" : ""}>
+              <p className="text-xs font-bold uppercase mb-2 px-1" style={{ color: "#94a3b8" }}>{mySchools.length > 0 ? "Other Schools · Cover / Browse" : "All Schools"}</p>
+              <div className="space-y-3">{otherSchools.map(s => SchoolCard(s, false))}</div>
+            </div>
+          ) : null}
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
+  // ---------------- COMPANY DASHBOARD ----------------
   // ---------------- COMPANY DASHBOARD ----------------
   if (screen === "company") {
     const allPairs = buildPairs(schools, assessments);
