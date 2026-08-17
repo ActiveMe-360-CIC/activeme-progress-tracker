@@ -13,10 +13,7 @@ const BC = {
 const RCOL = { E: "#FFAC38", D: "#47ABFB", Es: "#189E8A" };
 const RTXT = { E: BC.ink, D: BC.ink, Es: "#FFFFFF" };
 const pill = (bg, fg) => ({ backgroundColor: bg, color: fg });
-const tintBox = h => ({ backgroundColor: h + "
-
-1F", borderColor: h });
-
+const tintBox = h => ({ backgroundColor: h + "1F", borderColor: h });
 const FONTS = (
   <style>{"@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700;800&family=Unbounded:wght@500;700&display=swap'); .fd{font-family:'Unbounded',ui-sans-serif,system-ui;letter-spacing:-0.01em;} .fb{font-family:'Public Sans',ui-sans-serif,system-ui;} @media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;}}"}</style>
 );
