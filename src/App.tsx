@@ -12,7 +12,8 @@ const BC = {
 };
 const RCOL = { E: "#FFAC38", D: "#47ABFB", Es: "#189E8A" };
 const RTXT = { E: BC.ink, D: BC.ink, Es: "#FFFFFF" };
-const pill = (bg, fg) => ({ backgroundColor: bg, color: fg });
+const pill = (bg, fg) => ({ backgroundColor: 
+bg, color: fg });
 const tintBox = h => ({ backgroundColor: h + "1F", borderColor: h });
 
 const FONTS = (
@@ -992,7 +993,9 @@ async function addPupil(sid, cid) {
       const node = reportRef.current;
       const scale = 2;
       const canvas = await html2canvas(node, { scale, useCORS: true, backgroundColor: "#ffffff" });
-      const pdf = new jsPDF("p", "mm", "a4");
+      // compress: true enables jsPDF's own stream compression on top of the image
+      // compression below -- both layers together are what bring the file size down.
+      const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4", compress: true });
       const pageWidthMm = pdf.internal.pageSize.getWidth();
       const pageHeightMm = pdf.internal.pageSize.getHeight();
       const pxPerMm = canvas.width / pageWidthMm;
@@ -1034,10 +1037,15 @@ async function addPupil(sid, cid) {
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
         ctx.drawImage(canvas, 0, sliceTop, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx);
-        const imgData = pageCanvas.toDataURL("image/png");
+        // JPEG at 0.85 quality instead of lossless PNG -- PNG was the main driver of
+        // the 80MB+ file size for pages that are mostly text and flat colour, which
+        // PNG compresses poorly. 0.85 keeps the report visibly crisp while cutting
+        // file size dramatically; drop this further (e.g. 0.7) if size is still an
+        // issue after testing against a real whole-school export.
+        const imgData = pageCanvas.toDataURL("image/jpeg", 0.85);
         const sliceHeightMm = sliceHeightPx / pxPerMm;
         if (i > 0) pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, 0, pageWidthMm, sliceHeightMm);
+        pdf.addImage(imgData, "JPEG", 0, 0, pageWidthMm, sliceHeightMm);
       }
 
       pdf.save((filenameBase || "ActiveMe-Way-Impact-Report").replace(/[^a-z0-9]+/gi, "-") + ".pdf");
