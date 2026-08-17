@@ -12,9 +12,10 @@ const BC = {
 };
 const RCOL = { E: "#FFAC38", D: "#47ABFB", Es: "#189E8A" };
 const RTXT = { E: BC.ink, D: BC.ink, Es: "#FFFFFF" };
-const pill = (bg, fg) => ({ backgroundColor: 
-bg, color: fg });
-const tintBox = h => ({ backgroundColor: h + "1F", borderColor: h });
+const pill = (bg, fg) => ({ backgroundColor: bg, color: fg });
+const tintBox = h => ({ backgroundColor: h + "
+
+1F", borderColor: h });
 
 const FONTS = (
   <style>{"@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700;800&family=Unbounded:wght@500;700&display=swap'); .fd{font-family:'Unbounded',ui-sans-serif,system-ui;letter-spacing:-0.01em;} .fb{font-family:'Public Sans',ui-sans-serif,system-ui;} @media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;}}"}</style>
@@ -639,7 +640,7 @@ function PupilStatementTable({ pupils, stage, b, re }) {
           </thead>
           <tbody>
             {pupils.map(p => (
-              <tr key={p.init} className="border-t" style={{ borderColor: "#F0EBF5" }}>
+              <tr key={p.init} className="pdf-avoid-break border-t" style={{ borderColor: "#F0EBF5" }}>
                 <td className="py-1.5 pr-2 sticky left-0 bg-white align-top">
                   <div className="font-medium whitespace-nowrap text-xs" style={{ color: BC.ink }}>{p.name}</div>
                   <FlagChips p={p} small={true} />
@@ -2134,21 +2135,23 @@ async function addPupil(sid, cid) {
                   const showPupilTable = school.level === 3 && c.pupils.length > 0 && p.pre && p.post;
                   return (
                     <div key={i} className="pdf-avoid-break border rounded-xl p-3 mb-3" style={{ borderColor: "#E5E0EB", borderLeft: "4px solid " + FRAMEWORK[p.pillar].hex }}>
-                      <div className="flex items-center justify-between flex-wrap gap-1">
-                        <div>
-                          <PillarChip p={p.pillar} small={true} />
-                          <span className="text-[11px] font-bold text-slate-400 ml-2">T{p.term} · Stage {p.stage}: {stg.focus}</span>
+                      <div className="pdf-avoid-break">
+                        <div className="flex items-center justify-between flex-wrap gap-1">
+                          <div>
+                            <PillarChip p={p.pillar} small={true} />
+                            <span className="text-[11px] font-bold text-slate-400 ml-2">T{p.term} · Stage {p.stage}: {stg.focus}</span>
+                          </div>
+                          {p.uplift !== null ? (
+                            <span className="text-[11px] font-black" style={{ color: "#2554C7" }}>Avg progress +{p.uplift.toFixed(2)}</span>
+                          ) : <span className="text-[11px] font-bold" style={{ color: "#E06B22" }}>Progress Check pending</span>}
                         </div>
-                        {p.uplift !== null ? (
-                          <span className="text-[11px] font-black" style={{ color: "#2554C7" }}>Avg progress +{p.uplift.toFixed(2)}</span>
-                        ) : <span className="text-[11px] font-bold" style={{ color: "#E06B22" }}>Progress Check pending</span>}
-                      </div>
-                      <div className="text-[10px] text-slate-400 mt-0.5 mb-2">
-                        {p.pre ? "Baseline " + fmtDate(p.pre.date) : ""}{p.post ? " · Check " + fmtDate(p.post.date) : ""}
-                        {cb && cr ? " · Established " + pct(cb.Es, total(cb)) + "% → " + pct(cr.Es, total(cr)) + "% (" + cb.Es + "→" + cr.Es + " of " + total(cr) + " ratings)" : ""}
+                        <div className="text-[10px] text-slate-400 mt-0.5 mb-2">
+                          {p.pre ? "Baseline " + fmtDate(p.pre.date) : ""}{p.post ? " · Check " + fmtDate(p.post.date) : ""}
+                          {cb && cr ? " · Established " + pct(cb.Es, total(cb)) + "% → " + pct(cr.Es, total(cr)) + "% (" + cb.Es + "→" + cr.Es + " of " + total(cr) + " ratings)" : ""}
+                        </div>
                       </div>
                       {stg.statements.map((st, j) => (
-                        <div key={j} className="mb-2">
+                        <div key={j} className="pdf-avoid-break mb-2">
                           <p className="text-[11px] font-semibold mb-1" style={{ color: BC.ink }}>{j + 1}. {st}</p>
                           <div className="space-y-0.5">
                             {p.pre ? <div className="flex items-center gap-2"><span className="w-9 text-[9px] font-bold text-slate-400">Base</span><Bar d={dist(p.pre, j, c)} size={c.size} /></div> : null}
@@ -2158,7 +2161,7 @@ async function addPupil(sid, cid) {
                       ))}
                       {showPupilTable ? (
                         <div className="mt-3 pt-3 border-t" style={{ borderColor: "#F0EBF5" }}>
-                          <p className="text-[11px] font-bold mb-1.5" style={{ color: BC.ink }}>Individual pupil journeys — {p.pillar} · Stage {p.stage}</p>
+                          <p className="pdf-avoid-break text-[11px] font-bold mb-1.5" style={{ color: BC.ink }}>Individual pupil journeys — {p.pillar} · Stage {p.stage}</p>
                           <PupilStatementTable pupils={c.pupils} stage={stg} b={p.pre} re={p.post} />
                         </div>
                       ) : null}
