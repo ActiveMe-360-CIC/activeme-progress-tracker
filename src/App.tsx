@@ -710,25 +710,27 @@ function InitialChips({ list, onRemove }) {
   );
 }
 function RatingChip({ r }) {
-  return <span className="text-xs font-bold px-2 py-1 rounded-md border" style={{ backgroundColor: RCOL[r] + "33", borderColor: RCOL[r], color: BC.ink }}>{RLABEL[r]}</span>;
+  return <span className="inline-flex items-center justify-center h-5 text-xs font-bold px-2 rounded-md border" style={{ backgroundColor: RCOL[r] + "33", borderColor: RCOL[r], color: BC.ink }}>{RLABEL[r]}</span>;
 }
 function MiniRating({ r }) {
-  return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border" style={{ backgroundColor: RCOL[r] + "33", borderColor: RCOL[r], color: BC.ink }}>{RLABEL[r]}</span>;
+  return <span className="inline-flex items-center justify-center h-[18px] text-[10px] font-bold px-1.5 rounded border" style={{ backgroundColor: RCOL[r] + "33", borderColor: RCOL[r], color: BC.ink }}>{RLABEL[r]}</span>;
 }
 function LevelBadge({ level }) {
   const bg = level === 1 ? "#47ABFB" : level === 2 ? "#47FBDF" : "#C77EFF";
   const t = level === 1 ? "Level 1 · Class totals" : level === 2 ? "Level 2 · Class + initials" : "Level 3 · Per pupil";
-  return <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={pill(bg, BC.ink)}>{t}</span>;
+  return <span className="inline-flex items-center justify-center h-5 px-2 rounded-full text-xs font-bold" style={pill(bg, BC.ink)}>{t}</span>;
 }
 function PillarChip({ p, small }) {
-  return <span className={(small ? "text-[11px]" : "text-xs") + " font-bold px-2 py-0.5 rounded-full"} style={pill(FRAMEWORK[p].hexL, BC.ink)}>{p}</span>;
+  return <span className={"inline-flex items-center justify-center " + (small ? "h-[18px] text-[11px]" : "h-5 text-xs") + " font-bold px-2 rounded-full"} style={pill(FRAMEWORK[p].hexL, BC.ink)}>{p}</span>;
 }
 function FlagChips({ p, small }) {
-  const sz = small ? "text-[9px] px-1" : "text-[10px] px-1.5";
+  const h = small ? "h-4" : "h-[18px]";
+  const txt = small ? "text-[9px] px-1" : "text-[10px] px-1.5";
+  const cls = "inline-flex items-center justify-center " + h + " " + txt + " rounded font-bold";
   return (
     <span className="inline-flex gap-1">
-      {p.g ? <span className={sz + " py-0.5 rounded font-bold"} style={p.g === "B" ? pill("#47ABFB", BC.ink) : pill("#FF6293", BC.ink)}>{p.g}</span> : null}
-      {FLAGS.map(fl => p[fl[0]] ? <span key={fl[0]} className={sz + " py-0.5 rounded font-bold"} style={pill(fl[2], fl[3])}>{fl[1]}</span> : null)}
+      {p.g ? <span className={cls} style={p.g === "B" ? pill("#47ABFB", BC.ink) : pill("#FF6293", BC.ink)}>{p.g}</span> : null}
+      {FLAGS.map(fl => p[fl[0]] ? <span key={fl[0]} className={cls} style={pill(fl[2], fl[3])}>{fl[1]}</span> : null)}
     </span>
   );
 }
@@ -2038,7 +2040,7 @@ async function addPupil(sid, cid) {
                       <div className="fd text-5xl font-bold leading-none">+{avgUplift.toFixed(2)}</div>
                       <div className="text-sm font-semibold" style={{ color: BC.lilac }}>/ +{MAX_UPLIFT.toFixed(2)} max</div>
                     </div>
-                    <span className="inline-block mt-2 text-[10px] font-black uppercase px-2 py-1 rounded-full" style={{ backgroundColor: band.bg, color: band.fg }}>{band.label}</span>
+                    <span className="inline-flex items-center justify-center h-5 mt-4 text-[10px] font-black uppercase px-2 rounded-full" style={{ backgroundColor: band.bg, color: band.fg }}>{band.label}</span>
                     <p className="text-[10px] mt-1 max-w-[220px]" style={{ color: "#E8DEF2" }}>{band.label} = {band.def}.</p>
                   </div>
                   <p className="text-sm font-semibold text-right leading-snug" style={{ color: "#F6F3F8" }}>The average pupil moved from<br /><b>{ratingWordAt(avgPreScore)}</b> to <b>{ratingWordAt(avgPostScore)}</b></p>
@@ -2084,7 +2086,7 @@ async function addPupil(sid, cid) {
               <div className="space-y-2">
                 {byPillar.map(b => (
                   <div key={b.pillar} className="pdf-avoid-break flex items-center gap-2">
-                    <span className="w-24 text-[11px] font-bold px-2 py-1 rounded text-center" style={pill(FRAMEWORK[b.pillar].hexL, BC.ink)}>{b.pillar}</span>
+                    <span className="inline-flex items-center justify-center w-24 h-5 text-[11px] font-bold rounded text-center" style={pill(FRAMEWORK[b.pillar].hexL, BC.ink)}>{b.pillar}</span>
                     <span className="text-[10px] text-slate-400 w-10">n={b.n}</span>
                     <div className="flex-1 h-3.5 rounded-full overflow-hidden" style={{ backgroundColor: "#ECE6F2" }}>
                       <div className="h-full rounded-full" style={{ width: Math.max((b.uplift / maxU) * 100, 3) + "%", backgroundColor: FRAMEWORK[b.pillar].hex }}></div>
@@ -2198,12 +2200,12 @@ async function addPupil(sid, cid) {
 
           {narrativePillars.length > 0 ? (
             <div className="mb-2 border-t border-slate-200 pt-5">
-              <p className="fd text-xs font-bold uppercase mb-1 flex items-center gap-1.5" style={{ color: BC.purple }}>Impact narrative <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style={pill(BC.lime, BC.ink)}>Auto-drafted</span></p>
+              <p className="fd text-xs font-bold uppercase mb-1 flex items-center gap-1.5" style={{ color: BC.purple }}>Impact narrative <span className="inline-flex items-center justify-center h-[18px] text-[9px] font-bold uppercase px-1.5 rounded" style={pill(BC.lime, BC.ink)}>Auto-drafted</span></p>
               <p className="text-[11px] text-slate-400 mb-3">Drafted automatically from the logged ratings and segmented by development area — review before sharing and edit if a statement needs more context.</p>
               {narrativePillars.map(np => (
                 <div key={np.pillar} className="mb-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={pill(FRAMEWORK[np.pillar].hexL, BC.ink)}>{np.pillar}</span>
+                    <span className="inline-flex items-center justify-center h-5 text-xs font-bold px-2 rounded-full" style={pill(FRAMEWORK[np.pillar].hexL, BC.ink)}>{np.pillar}</span>
                     <span className="fd font-bold text-sm" style={{ color: BC.ink }}>{PILLAR_OVERVIEW[np.pillar]}</span>
                   </div>
                   {np.items.map((it, i) => (
@@ -2301,7 +2303,7 @@ async function addPupil(sid, cid) {
                       const band = progressBand(uplift);
                       return (
                         <>
-                          <span className="inline-block mt-1 text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full" style={{ backgroundColor: band.bg, color: band.fg }}>{band.label}</span>
+                          <span className="inline-block mt-2 text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full" style={{ backgroundColor: band.bg, color: band.fg }}>{band.label}</span>
                           <MetricNote>{band.label} ({band.range}) = {band.def}.</MetricNote>
                         </>
                       );
