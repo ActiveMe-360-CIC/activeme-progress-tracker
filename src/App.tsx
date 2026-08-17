@@ -20,7 +20,8 @@ const FONTS = (
 
 // Real ActiveMe 360 logo mark, extracted from brand artwork (rings + wordmark as vector paths).
 const AM_RINGS = [
-  { c: "#63DFC0", d: "M 205.804688 129.304688 C 200 131.34375 196.953125 137.703125 198.988281 143.503906 C 201.027344 149.304688 207.386719 152.355469 213.1875 150.316406 C 298.257812 120.421875 391.792969 165.308594 421.6875 250.382812 C 451.585938 335.453125 406.695312 428.988281 321.621094 458.882812 C 236.550781 488.777344 143.019531 443.890625 113.121094 358.816406 C 111.082031 353.015625 104.726562 349.964844 98.925781 352.003906 C 93.121094 354.042969 90.070312 360.398438 92.109375 366.203125 C 126.078125 462.859375 232.347656 513.863281 329.007812 479.894531 C 425.664062 445.929688 476.667969 339.65625 442.699219 243 C 408.734375 146.339844 302.460938 95.339844 205.804688 129.304688" },
+  { c: "#63DFC0", d: "M 205.804688 129.304688 C 200 131.34375 196.953125 13
+7.703125 198.988281 143.503906 C 201.027344 149.304688 207.386719 152.355469 213.1875 150.316406 C 298.257812 120.421875 391.792969 165.308594 421.6875 250.382812 C 451.585938 335.453125 406.695312 428.988281 321.621094 458.882812 C 236.550781 488.777344 143.019531 443.890625 113.121094 358.816406 C 111.082031 353.015625 104.726562 349.964844 98.925781 352.003906 C 93.121094 354.042969 90.070312 360.398438 92.109375 366.203125 C 126.078125 462.859375 232.347656 513.863281 329.007812 479.894531 C 425.664062 445.929688 476.667969 339.65625 442.699219 243 C 408.734375 146.339844 302.460938 95.339844 205.804688 129.304688" },
   { c: "#2554C7", d: "M 192.625 91.804688 C 135.785156 111.78125 90.125 152.695312 64.058594 207.007812 C 61.398438 212.554688 63.734375 219.207031 69.277344 221.867188 C 74.824219 224.527344 81.476562 222.1875 84.136719 216.644531 C 115.203125 151.914062 176.292969 111.101562 242.757812 102.875 C 280.050781 98.257812 319.039062 103.898438 355.359375 121.332031 C 456.414062 169.832031 499.171875 291.5 450.671875 392.554688 C 427.179688 441.507812 386.027344 478.382812 334.800781 496.386719 C 283.574219 514.386719 228.402344 511.363281 179.449219 487.867188 C 173.90625 485.207031 167.253906 487.546875 164.59375 493.089844 C 161.929688 498.636719 164.269531 505.285156 169.8125 507.945312 C 224.128906 534.015625 285.34375 537.371094 342.183594 517.394531 C 399.023438 497.421875 444.683594 456.507812 470.75 402.191406 C 496.820312 347.875 500.175781 286.660156 480.199219 229.820312 C 460.226562 172.980469 419.3125 127.320312 364.996094 101.253906 C 310.679688 75.1875 249.464844 71.832031 192.625 91.804688" },
   { c: "#E6235C", d: "M 178.648438 52.027344 C 151.289062 61.644531 125.90625 75.449219 103.207031 93.066406 C 98.347656 96.835938 97.464844 103.832031 101.234375 108.691406 C 105.003906 113.550781 112 114.429688 116.859375 110.660156 C 137.664062 94.515625 160.9375 81.859375 186.03125 73.039062 C 313.714844 28.167969 454.097656 95.542969 498.964844 223.226562 C 543.835938 350.910156 476.460938 491.292969 348.78125 536.164062 C 342.976562 538.199219 339.929688 544.558594 341.964844 550.359375 C 344.003906 556.160156 350.363281 559.210938 356.164062 557.171875 C 423.628906 533.464844 477.820312 484.902344 508.761719 420.433594 C 539.703125 355.964844 543.683594 283.308594 519.976562 215.84375 C 496.269531 148.378906 447.707031 94.183594 383.238281 63.242188 C 318.769531 32.304688 246.109375 28.320312 178.648438 52.027344" },
 ];
@@ -607,11 +608,15 @@ function StagePlacementBar({ label, d }) {
   );
 }
 // A single rating chip, dimmed for the "before" value -- used in the pupil x
-// statement table to show Baseline -> Progress Check at a glance.
+// statement table to show Baseline -> Progress Check at a glance. The "not yet
+// evidenced" placeholder draws its own small line rather than relying on a dash
+// character from the font -- the "\u2013" glyph sits low/off-centre in this font
+// at this size (visibly so next to the letter chips), so a drawn line guarantees
+// it's centred regardless of any font's dash metrics.
 function RatingCell({ rb, rr }) {
   const chip = (r, dim) => r ? (
     <span className="inline-flex items-center justify-center rounded text-[9px] font-black w-6 h-5 shrink-0" style={{ backgroundColor: RCOL[r], color: RTXT[r], opacity: dim ? 0.55 : 1 }}>{r}</span>
- ) : <span className="inline-flex items-center justify-center rounded text-[9px] font-bold w-6 h-5 shrink-0 border border-dashed" style={{ borderColor: "#E5E0EB", color: "#cbd5e1" }}>{"\u2013"}</span>;
+ ) : <span className="inline-flex items-center justify-center rounded w-6 h-5 shrink-0 border border-dashed" style={{ borderColor: "#E5E0EB" }}><span className="block rounded-full" style={{ width: 8, height: 2, backgroundColor: "#cbd5e1" }}></span></span>;
   return (
     <div className="flex items-center gap-0.5 justify-center">
       {chip(rb, true)}
@@ -996,30 +1001,44 @@ async function addPupil(sid, cid) {
       const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4", compress: true });
       const pageWidthMm = pdf.internal.pageSize.getWidth();
       const pageHeightMm = pdf.internal.pageSize.getHeight();
-      const pxPerMm = canvas.width / pageWidthMm;
-      const pageHeightPx = pageHeightMm * pxPerMm;
+      // Real page margin -- previously content was drawn at (0,0) on every page with
+      // no white border at all, so a page break landed content literally flush against
+      // the paper edge. Every page (not just the first) now gets breathing room on all
+      // four sides.
+      const marginMm = 12;
+      const contentWidthMm = pageWidthMm - marginMm * 2;
+      const contentHeightMm = pageHeightMm - marginMm * 2;
+      const pxPerMm = canvas.width / contentWidthMm;
+      const pageHeightPx = contentHeightMm * pxPerMm;
 
       // Collect the pixel ranges (in canvas coordinates) of blocks that must never
       // be split across a page break, so a page cut can be nudged back to avoid them.
       // getBoundingClientRect (not offsetTop) is used so this is correct regardless
       // of any intervening positioned ancestors between the block and the container.
+      // Rounded to whole pixels immediately -- fractional block edges were another
+      // source of the same sub-pixel bleed described below.
       const containerRect = node.getBoundingClientRect();
       const blocks = Array.from(node.querySelectorAll(".pdf-avoid-break")).map(el => {
         const r = el.getBoundingClientRect();
-        const top = (r.top - containerRect.top) * scale;
-        const bottom = (r.bottom - containerRect.top) * scale;
+        const top = Math.floor((r.top - containerRect.top) * scale);
+        const bottom = Math.ceil((r.bottom - containerRect.top) * scale);
         return { top, bottom };
       }).filter(b => b.bottom - b.top < pageHeightPx) // ignore anything taller than a whole page
         .sort((a, b) => a.top - b.top);
 
+      // Every cut boundary is rounded to a whole pixel as soon as it's computed --
+      // previously these stayed fractional, so when a fractional value was later
+      // assigned to a canvas's integer-only height/width, the browser's silent
+      // rounding meant drawImage sampled across a fractional source row, blending
+      // in a faint sliver of whatever content sat just the other side of the cut.
       const cuts = [0];
       let cursor = 0;
       while (cursor < canvas.height - 1) {
-        let next = Math.min(cursor + pageHeightPx, canvas.height);
+        let next = Math.floor(Math.min(cursor + pageHeightPx, canvas.height));
         for (const b of blocks) {
           if (b.top < next && b.bottom > next && b.top > cursor) next = b.top;
         }
-        if (next <= cursor) next = Math.min(cursor + pageHeightPx, canvas.height);
+        if (next <= cursor) next = Math.floor(Math.min(cursor + pageHeightPx, canvas.height));
         cuts.push(next);
         cursor = next;
       }
@@ -1043,7 +1062,7 @@ async function addPupil(sid, cid) {
         const imgData = pageCanvas.toDataURL("image/jpeg", 0.85);
         const sliceHeightMm = sliceHeightPx / pxPerMm;
         if (i > 0) pdf.addPage();
-        pdf.addImage(imgData, "JPEG", 0, 0, pageWidthMm, sliceHeightMm);
+        pdf.addImage(imgData, "JPEG", marginMm, marginMm, contentWidthMm, sliceHeightMm);
       }
 
       pdf.save((filenameBase || "ActiveMe-Way-Impact-Report").replace(/[^a-z0-9]+/gi, "-") + ".pdf");
