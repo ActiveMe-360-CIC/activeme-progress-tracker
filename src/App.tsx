@@ -999,6 +999,15 @@ async function addPupil(sid, cid) {
     try {
       const node = reportRef.current;
       const scale = 2;
+      // Wait for the custom web fonts (Public Sans, Unbounded) to fully finish loading
+      // before capturing. They're loaded via an async @import, and if html2canvas fires
+      // before they're ready, it rasterizes text with the browser's fallback font instead
+      // -- which has different line-height/baseline metrics than the one every centering
+      // fix so far has assumed, and would explain why text kept appearing off-centre no
+      // matter which CSS technique was used to try to fix it.
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
       const canvas = await html2canvas(node, { scale, useCORS: true, backgroundColor: "#ffffff" });
       // compress: true enables jsPDF's own stream compression on top of the image
       // compression below -- both layers together are what bring the file size down.
