@@ -598,9 +598,9 @@ function StagePlacementBar({ label, d }) {
     <div className="flex items-center gap-2 mb-1.5">
       <span className="w-28 text-[11px] font-bold text-slate-500">{label}</span>
       <div className="flex-1 h-4 rounded-full overflow-hidden flex" style={{ backgroundColor: "#ECE6F2" }}>
-        {pBelow > 0 ? <div className="h-full flex items-center justify-center text-[9px] font-bold" style={{ width: pBelow + "%", backgroundColor: "#FFAC38", color: BC.ink }}>{pBelow}%</div> : null}
-        {pAt > 0 ? <div className="h-full flex items-center justify-center text-[9px] font-bold" style={{ width: pAt + "%", backgroundColor: "#189E8A", color: "#fff" }}>{pAt}%</div> : null}
-        {pAbove > 0 ? <div className="h-full flex items-center justify-center text-[9px] font-bold" style={{ width: pAbove + "%", backgroundColor: "#47ABFB", color: BC.ink }}>{pAbove}%</div> : null}
+        {pBelow > 0 ? <div className="h-full text-center text-[9px] font-bold" style={{ width: pBelow + "%", backgroundColor: "#FFAC38", color: BC.ink, lineHeight: "16px" }}>{pBelow}%</div> : null}
+        {pAt > 0 ? <div className="h-full text-center text-[9px] font-bold" style={{ width: pAt + "%", backgroundColor: "#189E8A", color: "#fff", lineHeight: "16px" }}>{pAt}%</div> : null}
+        {pAbove > 0 ? <div className="h-full text-center text-[9px] font-bold" style={{ width: pAbove + "%", backgroundColor: "#47ABFB", color: BC.ink, lineHeight: "16px" }}>{pAbove}%</div> : null}
       </div>
       <span className="text-[10px] text-slate-400 w-16 text-right">n={d.total}</span>
     </div>
@@ -614,7 +614,7 @@ function StagePlacementBar({ label, d }) {
 // it's centred regardless of any font's dash metrics.
 function RatingCell({ rb, rr }) {
   const chip = (r, dim) => r ? (
-    <span className="inline-flex items-center justify-center rounded text-[9px] font-black w-6 h-5 shrink-0" style={{ backgroundColor: RCOL[r], color: RTXT[r], opacity: dim ? 0.55 : 1 }}>{r}</span>
+    <span className="inline-block text-center rounded text-[9px] font-black w-6 h-5 shrink-0" style={{ backgroundColor: RCOL[r], color: RTXT[r], opacity: dim ? 0.55 : 1, lineHeight: "20px" }}>{r}</span>
  ) : <span className="inline-flex items-center justify-center rounded w-6 h-5 shrink-0 border border-dashed" style={{ borderColor: "#E5E0EB" }}><span className="block rounded-full" style={{ width: 8, height: 2, backgroundColor: "#cbd5e1" }}></span></span>;
   return (
     <div className="flex items-center gap-0.5 justify-center">
@@ -682,9 +682,9 @@ function Bar({ d, size }) {
   return (
     <div className="flex h-6 w-full rounded-md overflow-hidden" style={{ backgroundColor: "#ECE6F2" }}>
       {RATINGS.map(r => d[r] > 0 ? (
-        <div key={r} className="flex items-center justify-center text-xs font-semibold" style={{ width: ((d[r] / full) * 100) + "%", backgroundColor: RCOL[r], color: RTXT[r] }}>{d[r]}</div>
+        <div key={r} className="text-center text-xs font-semibold" style={{ width: ((d[r] / full) * 100) + "%", backgroundColor: RCOL[r], color: RTXT[r], lineHeight: "24px" }}>{d[r]}</div>
       ) : null)}
-      {blank > 0 ? <div className="flex items-center justify-center text-slate-400 text-xs" style={{ width: ((blank / full) * 100) + "%" }} title="Not yet evidenced">{blank}</div> : null}
+      {blank > 0 ? <div className="text-center text-slate-400 text-xs" style={{ width: ((blank / full) * 100) + "%", lineHeight: "24px" }} title="Not yet evidenced">{blank}</div> : null}
     </div>
   );
 }
@@ -710,27 +710,30 @@ function InitialChips({ list, onRemove }) {
   );
 }
 function RatingChip({ r }) {
-  return <span className="inline-flex items-center justify-center h-5 text-xs font-bold px-2 rounded-md border" style={{ backgroundColor: RCOL[r] + "33", borderColor: RCOL[r], color: BC.ink }}>{RLABEL[r]}</span>;
+  return <span className="inline-block text-center h-5 text-xs font-bold px-2 rounded-md border" style={{ backgroundColor: RCOL[r] + "33", borderColor: RCOL[r], color: BC.ink, lineHeight: "20px" }}>{RLABEL[r]}</span>;
 }
 function MiniRating({ r }) {
-  return <span className="inline-flex items-center justify-center h-[18px] text-[10px] font-bold px-1.5 rounded border" style={{ backgroundColor: RCOL[r] + "33", borderColor: RCOL[r], color: BC.ink }}>{RLABEL[r]}</span>;
+  return <span className="inline-block text-center h-[18px] text-[10px] font-bold px-1.5 rounded border" style={{ backgroundColor: RCOL[r] + "33", borderColor: RCOL[r], color: BC.ink, lineHeight: "18px" }}>{RLABEL[r]}</span>;
 }
 function LevelBadge({ level }) {
   const bg = level === 1 ? "#47ABFB" : level === 2 ? "#47FBDF" : "#C77EFF";
   const t = level === 1 ? "Level 1 · Class totals" : level === 2 ? "Level 2 · Class + initials" : "Level 3 · Per pupil";
-  return <span className="inline-flex items-center justify-center h-5 px-2 rounded-full text-xs font-bold" style={pill(bg, BC.ink)}>{t}</span>;
+  return <span className="inline-block text-center h-5 px-2 rounded-full text-xs font-bold" style={{ ...pill(bg, BC.ink), lineHeight: "20px" }}>{t}</span>;
 }
 function PillarChip({ p, small }) {
-  return <span className={"inline-flex items-center justify-center " + (small ? "h-[18px] text-[11px]" : "h-5 text-xs") + " font-bold px-2 rounded-full"} style={pill(FRAMEWORK[p].hexL, BC.ink)}>{p}</span>;
+  const h = small ? 18 : 20;
+  return <span className={"inline-block text-center " + (small ? "h-[18px] text-[11px]" : "h-5 text-xs") + " font-bold px-2 rounded-full"} style={{ ...pill(FRAMEWORK[p].hexL, BC.ink), lineHeight: h + "px" }}>{p}</span>;
 }
 function FlagChips({ p, small }) {
-  const h = small ? "h-4" : "h-[18px]";
+  const h = small ? 16 : 18;
+  const hCls = small ? "h-4" : "h-[18px]";
   const txt = small ? "text-[9px] px-1" : "text-[10px] px-1.5";
-  const cls = "inline-flex items-center justify-center " + h + " " + txt + " rounded font-bold";
+  const cls = "inline-block text-center " + hCls + " " + txt + " rounded font-bold";
+  const lh = { lineHeight: h + "px" };
   return (
     <span className="inline-flex gap-1">
-      {p.g ? <span className={cls} style={p.g === "B" ? pill("#47ABFB", BC.ink) : pill("#FF6293", BC.ink)}>{p.g}</span> : null}
-      {FLAGS.map(fl => p[fl[0]] ? <span key={fl[0]} className={cls} style={pill(fl[2], fl[3])}>{fl[1]}</span> : null)}
+      {p.g ? <span className={cls} style={{ ...(p.g === "B" ? pill("#47ABFB", BC.ink) : pill("#FF6293", BC.ink)), ...lh }}>{p.g}</span> : null}
+      {FLAGS.map(fl => p[fl[0]] ? <span key={fl[0]} className={cls} style={{ ...pill(fl[2], fl[3]), ...lh }}>{fl[1]}</span> : null)}
     </span>
   );
 }
@@ -739,7 +742,7 @@ function GroupBars({ rows }) {
     <div className="space-y-2">
       {rows.map(r => (
         <div key={r.label} className="flex items-center gap-3">
-          <span className="w-20 text-[11px] font-bold px-2 py-1 rounded text-center" style={pill(r.bg, r.fg)}>{r.label}</span>
+          <span className="inline-block text-center w-20 h-5 text-[11px] font-bold rounded" style={{ ...pill(r.bg, r.fg), lineHeight: "20px" }}>{r.label}</span>
           <span className="text-[10px] text-slate-400 w-8">n={r.n}</span>
           <div className="flex-1 h-4 rounded-full overflow-hidden relative" style={{ backgroundColor: "#ECE6F2" }}>
             <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: r.pR + "%", backgroundColor: "#47FBDF" }}></div>
@@ -2040,7 +2043,7 @@ async function addPupil(sid, cid) {
                       <div className="fd text-5xl font-bold leading-none">+{avgUplift.toFixed(2)}</div>
                       <div className="text-sm font-semibold" style={{ color: BC.lilac }}>/ +{MAX_UPLIFT.toFixed(2)} max</div>
                     </div>
-                    <span className="inline-flex items-center justify-center h-5 mt-4 text-[10px] font-black uppercase px-2 rounded-full" style={{ backgroundColor: band.bg, color: band.fg }}>{band.label}</span>
+                    <span className="inline-block text-center h-5 mt-4 text-[10px] font-black uppercase px-2 rounded-full" style={{ backgroundColor: band.bg, color: band.fg, lineHeight: "20px" }}>{band.label}</span>
                     <p className="text-[10px] mt-1 max-w-[220px]" style={{ color: "#E8DEF2" }}>{band.label} = {band.def}.</p>
                   </div>
                   <p className="text-sm font-semibold text-right leading-snug" style={{ color: "#F6F3F8" }}>The average pupil moved from<br /><b>{ratingWordAt(avgPreScore)}</b> to <b>{ratingWordAt(avgPostScore)}</b></p>
@@ -2086,7 +2089,7 @@ async function addPupil(sid, cid) {
               <div className="space-y-2">
                 {byPillar.map(b => (
                   <div key={b.pillar} className="pdf-avoid-break flex items-center gap-2">
-                    <span className="inline-flex items-center justify-center w-24 h-5 text-[11px] font-bold rounded text-center" style={pill(FRAMEWORK[b.pillar].hexL, BC.ink)}>{b.pillar}</span>
+                    <span className="inline-block text-center w-24 h-5 text-[11px] font-bold rounded" style={{ ...pill(FRAMEWORK[b.pillar].hexL, BC.ink), lineHeight: "20px" }}>{b.pillar}</span>
                     <span className="text-[10px] text-slate-400 w-10">n={b.n}</span>
                     <div className="flex-1 h-3.5 rounded-full overflow-hidden" style={{ backgroundColor: "#ECE6F2" }}>
                       <div className="h-full rounded-full" style={{ width: Math.max((b.uplift / maxU) * 100, 3) + "%", backgroundColor: FRAMEWORK[b.pillar].hex }}></div>
@@ -2200,12 +2203,12 @@ async function addPupil(sid, cid) {
 
           {narrativePillars.length > 0 ? (
             <div className="mb-2 border-t border-slate-200 pt-5">
-              <p className="fd text-xs font-bold uppercase mb-1 flex items-center gap-1.5" style={{ color: BC.purple }}>Impact narrative <span className="inline-flex items-center justify-center h-[18px] text-[9px] font-bold uppercase px-1.5 rounded" style={pill(BC.lime, BC.ink)}>Auto-drafted</span></p>
+              <p className="fd text-xs font-bold uppercase mb-1 flex items-center gap-1.5" style={{ color: BC.purple }}>Impact narrative <span className="inline-block text-center h-[18px] text-[9px] font-bold uppercase px-1.5 rounded" style={{ ...pill(BC.lime, BC.ink), lineHeight: "18px" }}>Auto-drafted</span></p>
               <p className="text-[11px] text-slate-400 mb-3">Drafted automatically from the logged ratings and segmented by development area — review before sharing and edit if a statement needs more context.</p>
               {narrativePillars.map(np => (
                 <div key={np.pillar} className="mb-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="inline-flex items-center justify-center h-5 text-xs font-bold px-2 rounded-full" style={pill(FRAMEWORK[np.pillar].hexL, BC.ink)}>{np.pillar}</span>
+                    <span className="inline-block text-center h-5 text-xs font-bold px-2 rounded-full" style={{ ...pill(FRAMEWORK[np.pillar].hexL, BC.ink), lineHeight: "20px" }}>{np.pillar}</span>
                     <span className="fd font-bold text-sm" style={{ color: BC.ink }}>{PILLAR_OVERVIEW[np.pillar]}</span>
                   </div>
                   {np.items.map((it, i) => (
