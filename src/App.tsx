@@ -597,7 +597,7 @@ function StagePlacementBar({ label, d }) {
 function RatingCell({ rb, rr }) {
   const chip = (r, dim) => r ? (
     <span className="inline-flex items-center justify-center rounded text-[9px] font-black w-6 h-5 shrink-0" style={{ backgroundColor: RCOL[r], color: RTXT[r], opacity: dim ? 0.55 : 1 }}>{r}</span>
-  ) : <span className="inline-flex items-center justify-center rounded text-[9px] font-bold w-6 h-5 shrink-0 border border-dashed" style={{ borderColor: "#E5E0EB", color: "#cbd5e1" }}>\u2013</span>;
+ ) : <span className="inline-flex items-center justify-center rounded text-[9px] font-bold w-6 h-5 shrink-0 border border-dashed" style={{ borderColor: "#E5E0EB", color: "#cbd5e1" }}>{"\u2013"}</span>;
   return (
     <div className="flex items-center gap-0.5 justify-center">
       {chip(rb, true)}
@@ -639,7 +639,7 @@ function PupilStatementTable({ pupils, stage, b, re }) {
       <div className="mt-2 space-y-0.5">
         {stage.statements.map((st, j) => <p key={j} className="text-[10px] text-slate-400"><b>S{j + 1}:</b> {st}</p>)}
       </div>
-      <p className="text-[10px] text-slate-400 mt-2">Each cell reads Baseline \u2192 Progress Check for that statement \u2014 <span className="font-bold" style={{ color: BC.ink }}>E</span> Emerging, <span className="font-bold" style={{ color: BC.ink }}>D</span> Developing, <span className="font-bold" style={{ color: BC.ink }}>Es</span> Established, "\u2013" not yet evidenced.</p>
+     <p className="text-[10px] text-slate-400 mt-2">Each cell reads Baseline {"\u2192"} Progress Check for that statement {"\u2014"} <span className="font-bold" style={{ color: BC.ink }}>E</span> Emerging, <span className="font-bold" style={{ color: BC.ink }}>D</span> Developing, <span className="font-bold" style={{ color: BC.ink }}>Es</span> Established, {'"\u2013"'} not yet evidenced.</p>
     </div>
   );
 }
