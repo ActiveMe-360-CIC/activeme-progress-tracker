@@ -429,9 +429,24 @@ function groupAgg(pairsL3, filter) {
   });
   return { pre, post, n: ids.size };
 }
-// status of a given class+pillar+term: 'complete' | 'awaiting' | 'none'
-function unitStatus(assessments, sch, c, pillar, term) {
+// Resolves the stage a given class+pillar+term unit is actually running at: once a
+// Baseline has been logged, ITS stage is the fixed identity of that unit, regardless
+// of the class's default stage being edited afterwards in Admin. Falls back to the
+// class's current default stage only when no Baseline exists yet (i.e. a brand new unit).
+function unitStage(assessments, sch, c, pillar, term) {
   const recs = assessments.filter(a => a.schoolId === sch.id && a.classId === c.id && a.pillar === pillar && (a.term || 0) === term);
+  const baseRec = recs.find(r => r.window === "base");
+  return baseRec ? Number(baseRec.stage) : c.stage;
+}
+// status of a given class+pillar+term: 'complete' | 'awaiting' | 'none'.
+// Matches on the unit's resolved stage (see unitStage) so this agrees with buildPairs'
+// pairing logic -- previously this ignored stage entirely, so it could report a unit as
+// "complete" here while the Impact Report (which pairs on pillar+stage+term) still
+// treated it as two orphaned, unpaired records if the class's stage had changed between
+// Baseline and Check.
+function unitStatus(assessments, sch, c, pillar, term) {
+  const stage = unitStage(assessments, sch, c, pillar, term);
+  const recs = assessments.filter(a => a.schoolId === sch.id && a.classId === c.id && a.pillar === pillar && (a.term || 0) === term && Number(a.stage) === stage);
   const hasBase = recs.some(r => r.window === "base");
   const hasCheck = recs.some(r => r.window === "check");
   if (hasBase && hasCheck) return "complete";
@@ -1587,8 +1602,9 @@ async function addPupil(sid, cid) {
                             const win = st === "awaiting" ? "check" : "base";
                             return (
                               <button key={p} onClick={() => {
-                                if (st === "complete") { setClassId(c.id); setReport({ classId: c.id, pillar: p, stage: c.stage, term: CURRENT_TERM }); setScreen("report"); }
-                                else { setClassId(c.id); setCfg({ pillar: p, stage: c.stage, window: win, block: 6, term: CURRENT_TERM, date: today() }); setShowStatements(true); setScreen("setup"); }
+                                const stg = unitStage(assessments, school, c, p, CURRENT_TERM);
+                                if (st === "complete") { setClassId(c.id); setReport({ classId: c.id, pillar: p, stage: stg, term: CURRENT_TERM }); setScreen("report"); }
+                                else { setClassId(c.id); setCfg({ pillar: p, stage: stg, window: win, block: 6, term: CURRENT_TERM, date: today() }); setShowStatements(true); setScreen("setup"); }
                               }} className="rounded-xl p-2 text-left text-white" style={{ backgroundColor: FRAMEWORK[p].hex }}>
                                 <div className="text-[11px] font-bold">{p}</div>
                                 <div className="text-[10px] flex items-center gap-1 opacity-90">
@@ -1636,9 +1652,9 @@ async function addPupil(sid, cid) {
                             <PillarChip p={p} small={true} />
                             <span className="flex-1"></span>
                             {st === "complete" ? (
-                              <button onClick={() => { setClassId(c.id); setReport({ classId: c.id, pillar: p, stage: c.stage, term: m.term }); setScreen("report"); }} className="text-[10px] font-bold px-2 py-1 rounded-lg" style={pill(BC.ink, "#fff")}>Report</button>
+                              <button onClick={() => { setClassId(c.id); setReport({ classId: c.id, pillar: p, stage: unitStage(assessments, school, c, p, m.term), term: m.term }); setScreen("report"); }} className="text-[10px] font-bold px-2 py-1 rounded-lg" style={pill(BC.ink, "#fff")}>Report</button>
                             ) : st === "awaiting" ? (
-                              <button onClick={() => { setClassId(c.id); setCfg({ pillar: p, stage: c.stage, window: "check", block: 6, term: m.term, date: today() }); setShowStatements(true); setScreen("setup"); }} className="text-[10px] font-bold px-2 py-1 rounded-lg" style={pill(BC.lime, BC.ink)}>Do check</button>
+                              <button onClick={() => { setClassId(c.id); setCfg({ pillar: p, stage: unitStage(assessments, school, c, p, m.term), window: "check", block: 6, term: m.term, date: today() }); setShowStatements(true); setScreen("setup"); }} className="text-[10px] font-bold px-2 py-1 rounded-lg" style={pill(BC.lime, BC.ink)}>Do check</button>
                             ) : (
                               <button onClick={() => { setClassId(c.id); setCfg({ pillar: p, stage: c.stage, window: "base", block: 6, term: m.term, date: today() }); setShowStatements(true); setScreen("setup"); }} className="text-[10px] font-bold px-2 py-1 rounded-lg border" style={{ borderColor: "#E5E0EB", color: "#94a3b8" }}>Baseline</button>
                             )}
@@ -1935,7 +1951,12 @@ async function addPupil(sid, cid) {
       return { pillar: pl, n: ps.length, uplift: ps.length ? ps.reduce((a, p) => a + p.uplift, 0) / ps.length : null };
     }).filter(x => x.uplift !== null);
     const maxU = Math.max(0.01, ...byPillar.map(b => b.uplift));
-    const stagePl = stagePlacement(scoped);
+    // Only feed genuinely paired units (both Baseline and Check present) into this chart --
+    // using the full 'scoped' list here previously let a Baseline-only unit inflate the
+    // Baseline bar with no matching Check, and a different Check-only unit inflate the
+    // Check bar with no matching Baseline, so the two bars could show unrelated cohorts
+    // with different pupil counts rather than a genuine before/after of the same units.
+    const stagePl = stagePlacement(complete);
     const l3Complete = complete.filter(p => p.pre.level === 3);
     const groupRows = GROUPS.map(g => {
       const ga = groupAgg(l3Complete, g.filter);
