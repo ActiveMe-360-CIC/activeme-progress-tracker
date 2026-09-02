@@ -973,6 +973,11 @@ const [myLeadIds, setMyLeadIds] = useState(new Set());
   }, [user]);
 
   const COLOURS = ["#4A1671", "#189E8A", "#E06B22", "#E3225C", "#2554C7"];
+  async function setTermOverride(val) {
+    const { error } = await supabase.from("settings").update({ value: val === null ? null : String(val) }).eq("key", "current_term_override");
+    if (error) { alert("Could not update term: " + error.message); return; }
+    setCurrentTerm(val === null ? approxTermFromDate(new Date()) : val);
+  }
   async function addSchool() {
   const name = String(F("sName")).trim(); if (!name) return;
   const id = slug(name);
@@ -1666,6 +1671,19 @@ async function addPupil(sid, cid) {
         {FONTS}
         <Header title="Admin Console" sub="Manage schools, classes and pupils" back={() => setScreen("schools")} />
         <div className="max-w-lg mx-auto p-4 space-y-3">
+          <div className="bg-white rounded-2xl p-4 shadow-sm">
+            <p className="fd font-bold text-sm mb-1 flex items-center gap-2" style={{ color: BC.ink }}><CalendarDays size={16} />Current term</p>
+            <p className="text-[11px] text-slate-400 mb-3">Auto-set from today's date. Only change this if it's showing the wrong term near a term boundary.</p>
+            <div className="grid grid-cols-3 gap-2 mb-2">
+              {TERMS.map(t => (
+                <button key={t.n} onClick={() => setTermOverride(t.n)} className="py-2 rounded-lg text-xs font-bold border-2" style={currentTerm === t.n ? { borderColor: BC.mid, backgroundColor: BC.lilac + "33", color: BC.purple } : { borderColor: "#E5E0EB", color: "#94a3b8" }}>
+                  {t.label}
+                  <div className="text-[9px] font-normal">{t.sub}</div>
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setTermOverride(null)} className="w-full py-2 rounded-lg text-xs font-bold hover:opacity-80" style={{ backgroundColor: BC.bg, color: BC.purple }}>Reset to automatic ({termLabel(approxTermFromDate(new Date()))})</button>
+          </div>
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <p className="fd font-bold text-sm mb-3 flex items-center gap-2" style={{ color: BC.ink }}><Building2 size={16} />Add school</p>
             <input value={F("sName")} onChange={e => setF("sName", e.target.value)} placeholder="School name" className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm mb-2" />
