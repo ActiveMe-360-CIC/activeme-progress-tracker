@@ -800,6 +800,12 @@ export default function App() {
   const [authError, setAuthError] = useState("");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  const [authMode, setAuthMode] = useState("login"); // "login" | "forgot" | "reset"
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSent, setForgotSent] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [newPassword2, setNewPassword2] = useState("");
+  const [resetDone, setResetDone] = useState(false);
   const [schools, setSchools] = useState([]);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const reportRef = useRef(null);
@@ -864,10 +870,27 @@ const [myLeadIds, setMyLeadIds] = useState(new Set());
     }
     supabase.auth.getSession().then(({ data }) => loadProfile(data.session ? data.session.user : null));
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (_event === "PASSWORD_RECOVERY") { setAuthMode("reset"); setAuthLoading(false); return; }
       loadProfile(session ? session.user : null);
     });
     return () => { active = false; sub.subscription.unsubscribe(); };
   }, []);
+
+  async function handleForgotPassword() {
+    setAuthError("");
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, { redirectTo: window.location.origin });
+    if (error) { setAuthError(error.message); return; }
+    setForgotSent(true);
+  }
+  async function handleSetNewPassword() {
+    setAuthError("");
+    if (newPassword.length < 8) { setAuthError("Password must be at least 8 characters."); return; }
+    if (newPassword !== newPassword2) { setAuthError("Passwords don't match."); return; }
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) { setAuthError(error.message); return; }
+    await supabase.auth.signOut();
+    setNewPassword(""); setNewPassword2(""); setAuthMode("login"); setResetDone(true);
+  }
 
   // ---------------- SUPABASE: DATA LOADING ----------------
   // Pulls schools/classes/pupils and assessments from Supabase and reshapes them into
@@ -1191,8 +1214,68 @@ async function addPupil(sid, cid) {
         <div className="bg-white rounded-2xl p-5 shadow-xl">
           {authLoading ? (
             <p className="text-sm text-center py-8" style={{ color: BC.purple }}>Checking your session…</p>
+          ) : authMode === "reset" ? (
+            <>
+              {authError ? (
+                <div className="flex items-start gap-2 rounded-lg p-2.5 mb-4 border" style={tintBox("#E3225C")}>
+                  <ShieldAlert size={18} className="shrink-0 mt-0.5" style={{ color: "#E3225C" }} />
+                  <p className="text-xs" style={{ color: BC.ink }}>{authError}</p>
+                </div>
+              ) : null}
+              <p className="text-sm font-bold mb-1" style={{ color: BC.ink }}>Set a new password</p>
+              <p className="text-xs text-slate-500 mb-4">Choose a new password for your account.</p>
+              <label className="text-xs font-bold uppercase" style={{ color: BC.purple }}>New password</label>
+              <div className="relative mt-1 mb-3">
+                <Lock size={16} className="absolute left-3 top-3 text-slate-400" />
+                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="At least 8 characters" className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 focus:outline-none" />
+              </div>
+              <label className="text-xs font-bold uppercase" style={{ color: BC.purple }}>Confirm new password</label>
+              <div className="relative mt-1 mb-4">
+                <Lock size={16} className="absolute left-3 top-3 text-slate-400" />
+                <input type="password" value={newPassword2} onChange={e => setNewPassword2(e.target.value)} placeholder="Repeat password" className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 focus:outline-none" onKeyDown={e => { if (e.key === "Enter") handleSetNewPassword(); }} />
+              </div>
+              <button
+                disabled={!newPassword || !newPassword2}
+                onClick={handleSetNewPassword}
+                className="fd w-full py-3 rounded-xl font-bold disabled:opacity-30 hover:opacity-90"
+                style={pill(BC.lime, BC.ink)}
+              >
+                Set new password
+              </button>
+            </>
+          ) : authMode === "forgot" ? (
+            <>
+              {authError ? (
+                <div className="flex items-start gap-2 rounded-lg p-2.5 mb-4 border" style={tintBox("#E3225C")}>
+                  <ShieldAlert size={18} className="shrink-0 mt-0.5" style={{ color: "#E3225C" }} />
+                  <p className="text-xs" style={{ color: BC.ink }}>{authError}</p>
+                </div>
+              ) : null}
+              {forgotSent ? (
+                <>
+                  <div className="flex items-start gap-2 rounded-lg p-2.5 mb-4 border" style={tintBox("#189E8A")}>
+                    <p className="text-xs" style={{ color: BC.ink }}>Check your email for a link to reset your password.</p>
+                  </div>
+                  <button onClick={() => { setAuthMode("login"); setForgotSent(false); setAuthError(""); }} className="fd w-full py-3 rounded-xl font-bold hover:opacity-90" style={pill(BC.ink, "#fff")}>Back to sign in</button>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-bold mb-1" style={{ color: BC.ink }}>Reset your password</p>
+                  <p className="text-xs text-slate-500 mb-4">Enter your email and we'll send you a reset link.</p>
+                  <label className="text-xs font-bold uppercase" style={{ color: BC.purple }}>Email</label>
+                  <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} placeholder="you@activeme360.com" className="w-full mt-1 mb-4 px-3 py-2.5 rounded-lg border border-slate-300 focus:outline-none" onKeyDown={e => { if (e.key === "Enter" && forgotEmail) handleForgotPassword(); }} />
+                  <button disabled={!forgotEmail} onClick={handleForgotPassword} className="fd w-full py-3 rounded-xl font-bold mb-2 disabled:opacity-30 hover:opacity-90" style={pill(BC.lime, BC.ink)}>Send reset link</button>
+                  <button onClick={() => { setAuthMode("login"); setAuthError(""); }} className="fd w-full py-2.5 rounded-xl font-bold text-sm hover:opacity-80" style={{ color: BC.purple }}>Back to sign in</button>
+                </>
+              )}
+            </>
           ) : (
             <>
+              {resetDone ? (
+                <div className="flex items-start gap-2 rounded-lg p-2.5 mb-4 border" style={tintBox("#189E8A")}>
+                  <p className="text-xs" style={{ color: BC.ink }}>Password updated — sign in with your new password below.</p>
+                </div>
+              ) : null}
               {authError ? (
                 <div className="flex items-start gap-2 rounded-lg p-2.5 mb-4 border" style={tintBox("#E3225C")}>
                   <ShieldAlert size={18} className="shrink-0 mt-0.5" style={{ color: "#E3225C" }} />
@@ -1214,10 +1297,11 @@ async function addPupil(sid, cid) {
               <label className="text-xs font-bold uppercase" style={{ color: BC.purple }}>Email</label>
               <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} placeholder="you@activeme360.com" className="w-full mt-1 mb-3 px-3 py-2.5 rounded-lg border border-slate-300 focus:outline-none" />
               <label className="text-xs font-bold uppercase" style={{ color: BC.purple }}>Password</label>
-              <div className="relative mt-1 mb-4">
+              <div className="relative mt-1 mb-2">
                 <Lock size={16} className="absolute left-3 top-3 text-slate-400" />
                 <input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} placeholder="Password" className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 focus:outline-none" onKeyDown={e => { if (e.key === "Enter" && loginEmail && loginPassword) e.currentTarget.form?.requestSubmit?.(); }} />
               </div>
+              <button onClick={() => { setAuthMode("forgot"); setAuthError(""); setForgotEmail(loginEmail); }} className="text-xs font-bold mb-4 hover:opacity-80" style={{ color: BC.purple }}>Forgot password?</button>
               <button
                 disabled={!loginEmail || !loginPassword}
                 onClick={async () => {
