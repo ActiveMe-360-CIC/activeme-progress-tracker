@@ -72,7 +72,17 @@ const TERMS = [
 // Default paired-pillar rotation alongside Physical (which runs every term)
 const DEFAULT_ROTATION = ["Social Me", "Mental Me", "Personal Me", "Social Me", "Mental Me", "Personal Me"];
 const buildMap = () => TERMS.map((t, i) => ({ term: t.n, paired: DEFAULT_ROTATION[i] }));
-const CURRENT_TERM = 3; // demo "today" sits in Spring 1
+// Approximate current term from today's date - a sensible default, not exact for every
+// school every year (half-terms shift). Override via the settings table if ever off.
+function approxTermFromDate(d) {
+  const m = d.getMonth() + 1; // 1-12
+  if (m === 9 || m === 10) return 1;   // Autumn 1
+  if (m === 11 || m === 12) return 2;  // Autumn 2
+  if (m === 1 || m === 2) return 3;    // Spring 1
+  if (m === 3 || m === 4) return 4;    // Spring 2
+  if (m === 5 || m === 6) return 5;    // Summer 1
+  return 6;                             // Summer 2 (Jul/Aug)
+}
 
 const FRAMEWORK = {
   "Physical Me": {
@@ -829,6 +839,7 @@ export default function App() {
   const [showStatements, setShowStatements] = useState(true);
   const [editMap, setEditMap] = useState(null); // {term} for editing paired pillar
   const [mySchoolIds, setMySchoolIds] = useState(new Set());
+  const [currentTerm, setCurrentTerm] = useState(approxTermFromDate(new Date()));
 const [myLeadIds, setMyLeadIds] = useState(new Set());
 
   const school = schools.find(s => s.id === schoolId);
@@ -950,6 +961,10 @@ const [myLeadIds, setMyLeadIds] = useState(new Set());
 } else {
   setMySchoolIds(new Set()); setMyLeadIds(new Set());
 }
+    const { data: settingsRows } = await supabase.from("settings").select("key,value").eq("key", "current_term_override");
+    const override = settingsRows && settingsRows[0] ? settingsRows[0].value : null;
+    setCurrentTerm(override ? Number(override) : approxTermFromDate(new Date()));
+
     setDataLoading(false);
   }
 
@@ -1505,7 +1520,7 @@ async function addPupil(sid, cid) {
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <p className="fd font-bold text-sm mb-1 flex items-center gap-2" style={{ color: BC.ink }}><CalendarDays size={16} />Curriculum map</p>
             <p className="text-[11px] text-slate-400 mb-3">Physical Me runs every term (underpins PE). Set the paired pillar per term — usually agreed with the school during account review. Tap a paired pillar to change it; extend one across terms if progress shows children need longer.</p>
-            <CurriculumMap map={aCls.map} current={CURRENT_TERM} onEdit={(term, which) => { if (which === "paired") setEditMap({ term }); }} />
+            <CurriculumMap map={aCls.map} current={currentTerm} onEdit={(term, which) => { if (which === "paired") setEditMap({ term }); }} />
             {editMap ? (
               <div className="mt-3 rounded-xl border p-3" style={{ borderColor: BC.mid }}>
                 <p className="text-xs font-bold mb-2" style={{ color: BC.ink }}>{termLabel(editMap.term)} — paired pillar</p>
@@ -1639,7 +1654,7 @@ async function addPupil(sid, cid) {
                 </div>
                 <ChevronRight className="text-slate-300" />
               </div>
-              <CurriculumMap map={c.map} current={CURRENT_TERM} />
+              <CurriculumMap map={c.map} current={currentTerm} />
             </button>
           ))}
         </div>
@@ -1687,7 +1702,7 @@ async function addPupil(sid, cid) {
     return (
       <div className="fb min-h-screen" style={{ backgroundColor: BC.bg }}>
         {FONTS}
-        <Header title={school.name} sub={"Level " + school.level + " · " + termLabel(CURRENT_TERM)} back={() => setScreen("schools")} logo={school.logo} />
+        <Header title={school.name} sub={"Level " + school.level + " · " + termLabel(currentTerm)} back={() => setScreen("schools")} logo={school.logo} />
         <div className="max-w-lg mx-auto">
           <div className="flex p-2 gap-2">
             <button onClick={() => setTab("plan")} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold text-xs" style={tab === "plan" ? pill(BC.ink, "#fff") : pill("#fff", "#94a3b8")}><CalendarDays size={15} />Plan</button>
@@ -1703,7 +1718,7 @@ async function addPupil(sid, cid) {
               </div>
               {school.classes.map(c => {
                 const blocked = school.level === 3 && c.pupils.length === 0;
-                const nowPaired = c.map.find(m => m.term === CURRENT_TERM).paired;
+                const nowPaired = c.map.find(m => m.term === currentTerm).paired;
                 const termPillars = ["Physical Me", nowPaired];
                 return (
                   <div key={c.id} className="bg-white rounded-2xl p-4 shadow-sm">
@@ -1713,20 +1728,20 @@ async function addPupil(sid, cid) {
                         <div className="fd font-bold text-sm" style={{ color: BC.ink }}>{c.name} <span className="fb font-normal text-slate-400 text-xs">· {c.year} · Stg {c.stage}</span></div>
                       </div>
                     </div>
-                    <div className="mb-3"><CurriculumMap map={c.map} current={CURRENT_TERM} statusFn={(pillar, term) => unitStatus(assessments, school, c, pillar, term)} /></div>
+                    <div className="mb-3"><CurriculumMap map={c.map} current={currentTerm} statusFn={(pillar, term) => unitStatus(assessments, school, c, pillar, term)} /></div>
                     {blocked ? <p className="text-[11px] font-semibold" style={{ color: "#E3225C" }}>Admin must add the pupil register before Level 3 logging.</p> : (
                       <div>
-                        <p className="text-[11px] font-bold uppercase mb-1.5" style={{ color: BC.purple }}>{termLabel(CURRENT_TERM)} — log or check</p>
+                        <p className="text-[11px] font-bold uppercase mb-1.5" style={{ color: BC.purple }}>{termLabel(currentTerm)} — log or check</p>
                         <div className="grid grid-cols-2 gap-2">
                           {termPillars.map(p => {
-                            const st = unitStatus(assessments, school, c, p, CURRENT_TERM);
+                            const st = unitStatus(assessments, school, c, p, currentTerm);
                             const label = st === "complete" ? "Complete" : st === "awaiting" ? "Do check" : "Baseline";
                             const win = st === "awaiting" ? "check" : "base";
                             return (
                               <button key={p} onClick={() => {
-                                const stg = unitStage(assessments, school, c, p, CURRENT_TERM);
-                                if (st === "complete") { setClassId(c.id); setReport({ classId: c.id, pillar: p, stage: stg, term: CURRENT_TERM }); setScreen("report"); }
-                                else { setClassId(c.id); setCfg({ pillar: p, stage: stg, window: win, block: 6, term: CURRENT_TERM, date: today() }); setShowStatements(true); setScreen("setup"); }
+                                const stg = unitStage(assessments, school, c, p, currentTerm);
+                                if (st === "complete") { setClassId(c.id); setReport({ classId: c.id, pillar: p, stage: stg, term: currentTerm }); setScreen("report"); }
+                                else { setClassId(c.id); setCfg({ pillar: p, stage: stg, window: win, block: 6, term: currentTerm, date: today() }); setShowStatements(true); setScreen("setup"); }
                               }} className="rounded-xl p-2 text-left text-white" style={{ backgroundColor: FRAMEWORK[p].hex }}>
                                 <div className="text-[11px] font-bold">{p}</div>
                                 <div className="text-[10px] flex items-center gap-1 opacity-90">
@@ -1768,7 +1783,7 @@ async function addPupil(sid, cid) {
                         const st = unitStatus(assessments, school, c, p, m.term);
                         const icon = st === "complete" ? <CheckCircle2 size={15} style={{ color: "#0e6e60" }} /> : st === "awaiting" ? <Clock size={15} style={{ color: "#E06B22" }} /> : <Circle size={15} className="text-slate-300" />;
                         return (
-                          <div key={m.term + p} className="flex items-center gap-2 rounded-lg p-1.5" style={{ backgroundColor: m.term === CURRENT_TERM ? BC.lime + "22" : BC.bg }}>
+                          <div key={m.term + p} className="flex items-center gap-2 rounded-lg p-1.5" style={{ backgroundColor: m.term === currentTerm ? BC.lime + "22" : BC.bg }}>
                             <span className="shrink-0">{icon}</span>
                             <span className="text-[10px] font-black w-6 text-slate-400">T{m.term}</span>
                             <PillarChip p={p} small={true} />
