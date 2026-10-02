@@ -1698,7 +1698,7 @@ async function addPupil(sid, cid) {
             <div className="grid grid-cols-2 gap-2 mb-2">
               <input value={F("cName")} onChange={e => setF("cName", e.target.value)} placeholder="Class name" className="px-3 py-2 rounded-lg border border-slate-300 text-sm" />
               <select value={F("cYear", "Year 1")} onChange={e => setF("cYear", e.target.value)} className="px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white">
-                {["Reception", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"].map(y => <option key={y}>{y}</option>)}
+                {["Reception", "Year R/1", "Year 1", "Year 1/2", "Year 2", "Year 2/3", "Year 3", "Year 3/4", "Year 4", "Year 4/5", "Year 5", "Year 5/6", "Year 6"].map(y => <option key={y}>{y}</option>)}
               </select>
               <select value={F("cStage", 1)} onChange={e => setF("cStage", e.target.value)} className="px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white">
                 {[1, 2, 3, 4].map(s => <option key={s} value={s}>Default Stage {s}</option>)}
@@ -2186,7 +2186,7 @@ async function addPupil(sid, cid) {
       return { pillar: pl, items };
     }).filter(x => x.items.length > 0);
     const scopeLabel = docScope.type === "school" ? "Whole-School Impact Report" : docScope.type === "year" ? docScope.year + " Impact Report" : (school.classes.find(c => c.id === docScope.classId).name + " Class Impact Report");
-    const yearOrder = ["Reception", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"];
+    const yearOrder = ["Reception", "Year R/1", "Year 1", "Year 1/2", "Year 2", "Year 2/3", "Year 3", "Year 3/4", "Year 4", "Year 4/5", "Year 5", "Year 5/6", "Year 6"];
     const sortedClasses = [...scopeClasses].sort((a, b) => yearOrder.indexOf(a.year) - yearOrder.indexOf(b.year));
 
     return (
