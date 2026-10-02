@@ -987,6 +987,15 @@ const [myLeadIds, setMyLeadIds] = useState(new Set());
   await loadAllData();
   setF("sName", ""); setF("sLevel", 1);
 }
+// Changing a school's level only affects how NEW units are logged from this point on --
+// any assessment already saved keeps the level it was recorded under (each assessment
+// row stores its own level at save time), so this is safe to change at any point without
+// corrupting existing reports or in-progress units.
+async function updateSchoolLevel(sid, level) {
+  const { error } = await supabase.from("schools").update({ level }).eq("id", sid);
+  if (error) { alert("Could not update school level: " + error.message); return; }
+  await loadAllData();
+}
 
 async function addClass(sid) {
   const name = String(F("cName")).trim(); if (!name) return;
@@ -1024,6 +1033,19 @@ async function addPupil(sid, cid) {
 }
   function removePupil(sid, cid, init) {
     setSchools(ss => ss.map(s => (s.id !== sid ? s : { ...s, classes: s.classes.map(c => (c.id !== cid ? c : { ...c, pupils: c.pupils.filter(p => p.init !== init) })) })));
+  }
+  // Edits an existing pupil's record by database id. Note: pupil-group impact breakdowns
+  // (Impact by pupil group) are computed live from each pupil's CURRENT flags applied
+  // against historical ratings, not a snapshot taken at the time a unit was logged -- so
+  // correcting a pupil's PP/SEND/EAL/gender here will also retroactively change how
+  // already-completed units are grouped in past reports, not just future ones. That's the
+  // right behaviour for fixing a data-entry mistake, but worth knowing if a pupil's status
+  // has genuinely changed partway through a unit (e.g. a new EHCP) and old reports are
+  // meant to reflect their status at the time.
+  async function updatePupil(pupilId, fields) {
+    const { error } = await supabase.from("pupils").update(fields).eq("id", pupilId);
+    if (error) { alert("Could not update pupil: " + error.message); return; }
+    await loadAllData();
   }
   async function setLogo(sid, file) {
   const ext = file.name.split(".").pop();
@@ -1560,14 +1582,42 @@ async function addPupil(sid, cid) {
             <p className="fd font-bold text-sm mb-3" style={{ color: BC.ink }}>{aCls.pupils.length} pupils on register</p>
             {aCls.pupils.length === 0 ? <p className="text-xs text-slate-400">No pupils yet. Add them above or use the Excel import on the school page. Registers are required for Level 3 per-pupil assessment and pupil-group impact breakdowns.</p> : null}
             <div className="space-y-1.5">
-              {aCls.pupils.map(p => (
-                <div key={p.init} className="flex items-center gap-2 text-sm">
-                  <span className="w-9 text-[10px] font-black text-slate-400">{p.init}</span>
-                  <span className="flex-1 font-medium truncate" style={{ color: BC.ink }}>{p.name}</span>
-                  <FlagChips p={p} />
-                  <button onClick={() => removePupil(aSchool.id, aCls.id, p.init)} className="p-1 text-slate-300 hover:text-rose-500"><Trash2 size={14} /></button>
-                </div>
-              ))}
+              {aCls.pupils.map(p => {
+                const editing = F("editPupil") === p.id;
+                if (!editing) return (
+                  <div key={p.init} className="flex items-center gap-2 text-sm">
+                    <span className="w-9 text-[10px] font-black text-slate-400">{p.init}</span>
+                    <span className="flex-1 font-medium truncate" style={{ color: BC.ink }}>{p.name}</span>
+                    <FlagChips p={p} />
+                    <button onClick={() => { setF("editPupil", p.id); setF("epName", p.name); setF("epInit", p.init); setF("epG", p.g); setF("epPP", p.pp); setF("epSEND", p.send); setF("epEAL", p.eal); }} className="p-1 text-slate-300 hover:text-indigo-500"><Pencil size={14} /></button>
+                    <button onClick={() => removePupil(aSchool.id, aCls.id, p.init)} className="p-1 text-slate-300 hover:text-rose-500"><Trash2 size={14} /></button>
+                  </div>
+                );
+                return (
+                  <div key={p.init} className="rounded-xl border-2 p-2.5" style={{ borderColor: BC.mid }}>
+                    <div className="flex gap-2 mb-2">
+                      <input value={F("epName")} onChange={e => setF("epName", e.target.value)} placeholder="Full name" className="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+                      <div className="w-20 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-400 text-center" title="Initials can't be changed here -- they're how this pupil's existing ratings are matched up, so editing them would disconnect their history.">{p.init}</div>
+                    </div>
+                    <div className="flex gap-2 mb-2">
+                      <button onClick={() => setF("epG", F("epG") === "B" ? null : "B")} className="flex-1 py-1.5 rounded-lg text-xs font-bold border-2" style={F("epG") === "B" ? { backgroundColor: "#47ABFB", color: BC.ink, borderColor: "#47ABFB" } : { backgroundColor: BC.bg, color: "#94a3b8", borderColor: "#E5E0EB" }}>Boy</button>
+                      <button onClick={() => setF("epG", F("epG") === "G" ? null : "G")} className="flex-1 py-1.5 rounded-lg text-xs font-bold border-2" style={F("epG") === "G" ? { backgroundColor: "#FF6293", color: BC.ink, borderColor: "#FF6293" } : { backgroundColor: BC.bg, color: "#94a3b8", borderColor: "#E5E0EB" }}>Girl</button>
+                      {FLAGS.map(fl => {
+                        const fk = "ep" + fl[1];
+                        const on = F(fk, false);
+                        return <button key={fl[0]} onClick={() => setF(fk, !on)} className="flex-1 py-1.5 rounded-lg text-xs font-bold border-2" style={on ? { backgroundColor: fl[2], color: fl[3], borderColor: fl[2] } : { backgroundColor: BC.bg, color: "#94a3b8", borderColor: "#E5E0EB" }}>{fl[1]}</button>;
+                      })}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button onClick={() => setF("editPupil", null)} className="py-2 rounded-lg border-2 border-slate-200 text-slate-500 font-bold text-xs">Cancel</button>
+                      <button onClick={async () => {
+                        await updatePupil(p.id, { name: String(F("epName")).trim() || p.name, gender: F("epG") || null, pp: !!F("epPP"), send: !!F("epSEND"), eal: !!F("epEAL") });
+                        setF("editPupil", null);
+                      }} className="py-2 rounded-lg font-bold text-xs hover:opacity-90" style={pill(BC.lime, BC.ink)}>Save</button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -1579,6 +1629,15 @@ async function addPupil(sid, cid) {
         {FONTS}
         <Header title={aSchool.name} sub="Admin · Manage classes" back={() => { setAdminSchoolId(null); setImportPreview(null); }} logo={aSchool.logo} />
         <div className="max-w-lg mx-auto p-4 space-y-3">
+          <div className="bg-white rounded-2xl p-4 shadow-sm">
+            <p className="fd font-bold text-sm mb-1 flex items-center gap-2" style={{ color: BC.ink }}><Settings size={16} />School level</p>
+            <p className="text-[11px] text-slate-400 mb-3">Sets how every class in this school logs assessments. Changing this only affects units logged from now on -- anything already saved keeps the level it was recorded under, so past reports and in-progress units aren't affected.</p>
+            <div className="grid grid-cols-3 gap-2">
+              {[1, 2, 3].map(l => (
+                <button key={l} onClick={() => updateSchoolLevel(aSchool.id, l)} className="py-2 rounded-lg text-xs font-bold border-2" style={aSchool.level === l ? { borderColor: BC.mid, backgroundColor: BC.lilac + "33", color: BC.purple } : { borderColor: "#E5E0EB", color: "#94a3b8" }}>Level {l}</button>
+              ))}
+            </div>
+          </div>
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <p className="fd font-bold text-sm mb-1 flex items-center gap-2" style={{ color: BC.ink }}><FileSpreadsheet size={16} />Import classes & pupils from Excel</p>
             <p className="text-[11px] text-slate-400 mb-3">Use the template so columns populate correctly. Accepts .xlsx or .csv. New classes get the default curriculum map, editable per class.</p>
