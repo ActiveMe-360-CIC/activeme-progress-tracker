@@ -907,11 +907,29 @@ const [myLeadIds, setMyLeadIds] = useState(new Set());
   // Pulls schools/classes/pupils and assessments from Supabase and reshapes them into
   // the same nested objects the rest of the app already expects, so the Report/Doc/
   // Entry screens etc. don't need to change at all.
+  // Supabase caps any single query at 1,000 rows by default and does so silently -- no
+  // error, the rest of the rows just never arrive. Once the pupils table passed 1,000 rows
+  // that meant whole classes appeared to have an empty register (their pupils were in the
+  // database but never loaded), which blocked Level 3 logging. This fetches in pages until
+  // a page comes back empty, advancing by however many rows actually came back (so it stays
+  // correct even if the server's cap is ever changed), ordered by id so pages don't overlap.
+  async function fetchAllRows(table, columns) {
+    const rows = [];
+    let from = 0;
+    while (true) {
+      const { data, error } = await supabase.from(table).select(columns).order("id").range(from, from + 999);
+      if (error) { alert("Could not load " + table + ": " + error.message); break; }
+      if (!data || data.length === 0) break;
+      rows.push(...data);
+      from += data.length;
+    }
+    return rows;
+  }
   async function loadAllData() {
     setDataLoading(true);
    const { data: schoolRows } = await supabase.from("schools").select("id,name,level,colour,logo_url");
-    const { data: classRows } = await supabase.from("classes").select("id,school_id,name,year_group,stage,size,curriculum_map");
-    const { data: pupilRows } = await supabase.from("pupils").select("id,class_id,init,name,gender,pp,send,eal");
+    const classRows = await fetchAllRows("classes", "id,school_id,name,year_group,stage,size,curriculum_map");
+    const pupilRows = await fetchAllRows("pupils", "id,class_id,init,name,gender,pp,send,eal");
 
     const levelBySchool = {};
     (schoolRows || []).forEach(s => { levelBySchool[s.id] = s.level; });
@@ -936,9 +954,7 @@ const [myLeadIds, setMyLeadIds] = useState(new Set());
   id: s.id, name: s.name, level: s.level, colour: s.colour, logo: s.logo_url, classes: classesBySchool[s.id] || [],
 })));
 
-    const { data: assessRows } = await supabase
-      .from("assessments")
-      .select("id,school_id,class_id,pillar,stage,window_type,block,term,assess_date,educator_id,data,app_users(name)");
+    const assessRows = await fetchAllRows("assessments", "id,school_id,class_id,pillar,stage,window_type,block,term,assess_date,educator_id,data,app_users(name)");
 
     setAssessments((assessRows || []).map(a => ({
       id: a.id,
