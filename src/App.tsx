@@ -840,6 +840,10 @@ export default function App() {
   const [editMap, setEditMap] = useState(null); // {term} for editing paired pillar
   const [mySchoolIds, setMySchoolIds] = useState(new Set());
   const [currentTerm, setCurrentTerm] = useState(approxTermFromDate(new Date()));
+  // Which term the Plan tab is showing for THIS user only (null = follow the current term).
+  // Lets the team go back to log retrospectively, without touching the global current-term
+  // setting that the Admin Console controls for everyone.
+  const [planTerm, setPlanTerm] = useState(null);
 const [myLeadIds, setMyLeadIds] = useState(new Set());
 
   const school = schools.find(s => s.id === schoolId);
@@ -1397,7 +1401,7 @@ async function addPupil(sid, cid) {
     const mySchools = schools.filter(s => mySchoolIds.has(s.id));
     const otherSchools = schools.filter(s => !mySchoolIds.has(s.id));
     const SchoolCard = (s, lead) => (
-      <button key={s.id} onClick={() => { setSchoolId(s.id); setClassId(null); setTab("plan"); setScopePick(null); setScreen("school"); }} className="w-full bg-white rounded-2xl p-4 shadow-sm hover:shadow-md text-left flex items-center gap-4 transition-shadow">
+      <button key={s.id} onClick={() => { setSchoolId(s.id); setClassId(null); setTab("plan"); setPlanTerm(null); setScopePick(null); setScreen("school"); }} className="w-full bg-white rounded-2xl p-4 shadow-sm hover:shadow-md text-left flex items-center gap-4 transition-shadow">
         {s.logo ? <img src={s.logo} alt="" className="w-12 h-12 rounded-xl object-contain bg-white border border-slate-100 shrink-0" /> : <div className="w-12 h-12 rounded-xl text-white flex items-center justify-center font-black text-lg shrink-0" style={{ backgroundColor: s.colour || BC.ink }}>{s.name[0]}</div>}
         <div className="flex-1">
           <div className="font-bold flex items-center gap-2" style={{ color: BC.ink }}>{s.name}{lead ? <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded" style={pill(BC.lime, BC.ink)}>Lead</span> : null}</div>
@@ -1789,6 +1793,7 @@ async function addPupil(sid, cid) {
 
   // ---------------- SCHOOL VIEW ----------------
   if (screen === "school") {
+    const viewTerm = planTerm || currentTerm;
     const pairs = buildPairs([school], assessments);
     const years = [...new Set(school.classes.map(c => c.year))];
 
@@ -1807,11 +1812,20 @@ async function addPupil(sid, cid) {
           {tab === "plan" ? (
             <div className="p-3 space-y-3">
               <div className="bg-white rounded-2xl p-3 shadow-sm">
-                <p className="text-xs text-slate-500">Each class follows a curriculum map — <b style={{ color: BC.ink }}>Physical Me every term</b> plus a rotating pillar. The current term is highlighted; tap this term's pillars to log or check.</p>
+                <p className="text-xs text-slate-500 mb-2">Each class follows a curriculum map — <b style={{ color: BC.ink }}>Physical Me every term</b> plus a rotating pillar. Pick a term below to log or check it — use an earlier term to add data retrospectively.</p>
+                <div className="grid grid-cols-6 gap-1.5">
+                  {TERMS.map(t => (
+                    <button key={t.n} onClick={() => setPlanTerm(t.n === currentTerm ? null : t.n)} className="py-1.5 rounded-lg text-[11px] font-bold border-2" style={viewTerm === t.n ? { borderColor: BC.mid, backgroundColor: BC.lilac + "33", color: BC.purple } : { borderColor: "#E5E0EB", color: "#94a3b8" }}>
+                      T{t.n}
+                      <div className="text-[8px] font-normal">{t.n === currentTerm ? "now" : t.sub.replace("Autumn ", "Aut ").replace("Spring ", "Spr ").replace("Summer ", "Sum ")}</div>
+                    </button>
+                  ))}
+                </div>
+                {viewTerm !== currentTerm ? <p className="text-[11px] mt-2 font-semibold" style={{ color: "#E06B22" }}>You're viewing {termLabel(viewTerm)}, not the current term ({termLabel(currentTerm)}). Check the date on the next screen is when the assessment actually took place.</p> : null}
               </div>
               {school.classes.map(c => {
                 const blocked = school.level === 3 && c.pupils.length === 0;
-                const nowPaired = c.map.find(m => m.term === currentTerm).paired;
+                const nowPaired = c.map.find(m => m.term === viewTerm).paired;
                 const termPillars = ["Physical Me", nowPaired];
                 return (
                   <div key={c.id} className="bg-white rounded-2xl p-4 shadow-sm">
@@ -1821,20 +1835,20 @@ async function addPupil(sid, cid) {
                         <div className="fd font-bold text-sm" style={{ color: BC.ink }}>{c.name} <span className="fb font-normal text-slate-400 text-xs">· {c.year} · Stg {c.stage}</span></div>
                       </div>
                     </div>
-                    <div className="mb-3"><CurriculumMap map={c.map} current={currentTerm} statusFn={(pillar, term) => unitStatus(assessments, school, c, pillar, term)} /></div>
+                    <div className="mb-3"><CurriculumMap map={c.map} current={viewTerm} statusFn={(pillar, term) => unitStatus(assessments, school, c, pillar, term)} /></div>
                     {blocked ? <p className="text-[11px] font-semibold" style={{ color: "#E3225C" }}>Admin must add the pupil register before Level 3 logging.</p> : (
                       <div>
-                        <p className="text-[11px] font-bold uppercase mb-1.5" style={{ color: BC.purple }}>{termLabel(currentTerm)} — log or check</p>
+                        <p className="text-[11px] font-bold uppercase mb-1.5" style={{ color: BC.purple }}>{termLabel(viewTerm)} — log or check</p>
                         <div className="grid grid-cols-2 gap-2">
                           {termPillars.map(p => {
-                            const st = unitStatus(assessments, school, c, p, currentTerm);
+                            const st = unitStatus(assessments, school, c, p, viewTerm);
                             const label = st === "complete" ? "Complete" : st === "awaiting" ? "Do check" : "Baseline";
                             const win = st === "awaiting" ? "check" : "base";
                             return (
                               <button key={p} onClick={() => {
-                                const stg = unitStage(assessments, school, c, p, currentTerm);
-                                if (st === "complete") { setClassId(c.id); setReport({ classId: c.id, pillar: p, stage: stg, term: currentTerm }); setScreen("report"); }
-                                else { setClassId(c.id); setCfg({ pillar: p, stage: stg, window: win, block: 6, term: currentTerm, date: today() }); setShowStatements(true); setScreen("setup"); }
+                                const stg = unitStage(assessments, school, c, p, viewTerm);
+                                if (st === "complete") { setClassId(c.id); setReport({ classId: c.id, pillar: p, stage: stg, term: viewTerm }); setScreen("report"); }
+                                else { setClassId(c.id); setCfg({ pillar: p, stage: stg, window: win, block: 6, term: viewTerm, date: today() }); setShowStatements(true); setScreen("setup"); }
                               }} className="rounded-xl p-2 text-left text-white" style={{ backgroundColor: FRAMEWORK[p].hex }}>
                                 <div className="text-[11px] font-bold">{p}</div>
                                 <div className="text-[10px] flex items-center gap-1 opacity-90">
